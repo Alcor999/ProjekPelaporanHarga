@@ -1,0 +1,376 @@
+import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../core/constants/api_constants.dart';
+import '../core/exceptions/api_exception.dart';
+import '../models/user_model.dart';
+import '../models/wilayah_model.dart';
+import '../models/komoditas_model.dart';
+import '../models/laporan_harga_model.dart';
+
+class ApiService {
+  late Dio _dio;
+  String? _token;
+
+  ApiService() {
+    _initializeDio();
+  }
+
+  void _initializeDio() {
+    _dio = Dio(
+      BaseOptions(
+        baseUrl: ApiConstants.baseUrl,
+        connectTimeout: ApiConstants.connectionTimeout,
+        receiveTimeout: ApiConstants.receiveTimeout,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ),
+    );
+
+    // Add interceptor untuk menambahkan token
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          if (_token != null) {
+            options.headers['Authorization'] = 'Bearer $_token';
+          }
+          return handler.next(options);
+        },
+        onError: (error, handler) {
+          return handler.next(error);
+        },
+      ),
+    );
+  }
+
+  Future<void> loadToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    _token = prefs.getString('api_token');
+  }
+
+  Future<Map<String, dynamic>> login(String email, String password) async {
+    try {
+      final response = await _dio.post(
+        ApiConstants.login,
+        data: {'email': email, 'password': password},
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        if (data['success'] == true) {
+          _token = data['data']['token'];
+
+          // Simpan token ke SharedPreferences
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('api_token', _token!);
+          await prefs.setString('user', data['data']['user'].toString());
+
+          return data;
+        }
+      }
+      throw ServerException(message: 'Login gagal');
+    } on DioException catch (e) {
+      // Handle DioException dan throw ApiException yang sesuai
+      _handleDioException(e);
+      rethrow;
+    } catch (e) {
+      // Handle error lainnya
+      if (e is ApiException) {
+        rethrow;
+      }
+      throw ApiException(
+        message: 'Terjadi kesalahan: ${e.toString()}',
+        originalError: e,
+      );
+    }
+  }
+
+  Future<Map<String, dynamic>> register(
+    String name,
+    String email,
+    String password,
+    String passwordConfirmation, {
+    String? phone,
+    String? address,
+  }) async {
+    try {
+      final response = await _dio.post(
+        ApiConstants.register,
+        data: {
+          'name': name,
+          'email': email,
+          'password': password,
+          'password_confirmation': passwordConfirmation,
+          'phone': phone,
+          'address': address,
+        },
+      );
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        final data = response.data;
+        if (data['success'] == true) {
+          return data;
+        }
+      }
+      throw ServerException(message: 'Registrasi gagal');
+    } on DioException catch (e) {
+      _handleDioException(e);
+      rethrow;
+    }
+  }
+
+  Future<User> getProfile() async {
+    try {
+      final response = await _dio.get(ApiConstants.profile);
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        if (data['success'] == true) {
+          return User.fromJson(data['data']);
+        }
+      }
+      throw ServerException(message: 'Gagal mengambil profil');
+    } on DioException catch (e) {
+      _handleDioException(e);
+      rethrow;
+    }
+  }
+
+  Future<void> logout() async {
+    try {
+      await _dio.post(ApiConstants.logout);
+
+      _token = null;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('api_token');
+      await prefs.remove('user');
+    } on DioException catch (e) {
+      _handleDioException(e);
+      rethrow;
+    }
+  }
+
+  Future<List<Wilayah>> getWilayah() async {
+    try {
+      final response = await _dio.get(ApiConstants.wilayah);
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        if (data['success'] == true) {
+          final List<dynamic> wilayahList = data['data'] ?? [];
+          return wilayahList.map((w) => Wilayah.fromJson(w)).toList();
+        }
+      }
+      return [];
+    } on DioException catch (e) {
+      _handleDioException(e);
+      rethrow;
+    }
+  }
+
+  Future<List<Komoditas>> getKomoditas() async {
+    try {
+      final response = await _dio.get(ApiConstants.komoditas);
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        if (data['success'] == true) {
+          final List<dynamic> komoditasList = data['data'] ?? [];
+          return komoditasList.map((k) => Komoditas.fromJson(k)).toList();
+        }
+      }
+      return [];
+    } on DioException catch (e) {
+      _handleDioException(e);
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> createLaporan(LaporanHarga laporan) async {
+    try {
+      final response = await _dio.post(
+        ApiConstants.laporan,
+        data: laporan.toJson(),
+      );
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        final data = response.data;
+        if (data['success'] == true) {
+          return data;
+        }
+      }
+      throw ServerException(message: 'Gagal membuat laporan');
+    } on DioException catch (e) {
+      _handleDioException(e);
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> getLaporanList({int page = 1}) async {
+    try {
+      final response = await _dio.get(
+        ApiConstants.laporan,
+        queryParameters: {'page': page},
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        if (data['success'] == true) {
+          return data;
+        }
+      }
+      throw ServerException(message: 'Gagal mengambil daftar laporan');
+    } on DioException catch (e) {
+      _handleDioException(e);
+      rethrow;
+    }
+  }
+
+  Future<LaporanHarga> getLaporanDetail(int id) async {
+    try {
+      final response = await _dio.get('${ApiConstants.laporanDetail}/$id');
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        if (data['success'] == true) {
+          return LaporanHarga.fromJson(data['data']);
+        }
+      }
+      throw ServerException(message: 'Gagal mengambil detail laporan');
+    } on DioException catch (e) {
+      _handleDioException(e);
+      rethrow;
+    }
+  }
+
+  Future<LaporanHarga> updateLaporan(int id, LaporanHarga laporan) async {
+    try {
+      final response = await _dio.put(
+        '${ApiConstants.laporanDetail}/$id',
+        data: laporan.toJson(),
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        if (data['success'] == true) {
+          return LaporanHarga.fromJson(data['data']);
+        }
+      }
+      throw ServerException(message: 'Gagal mengupdate laporan');
+    } on DioException catch (e) {
+      _handleDioException(e);
+      rethrow;
+    }
+  }
+
+  Future<void> deleteLaporan(int id) async {
+    try {
+      final response = await _dio.delete('${ApiConstants.laporanDetail}/$id');
+
+      if (response.statusCode != 200 && response.statusCode != 204) {
+        throw ServerException(message: 'Gagal menghapus laporan');
+      }
+    } on DioException catch (e) {
+      _handleDioException(e);
+      rethrow;
+    }
+  }
+
+  void _handleDioException(DioException e) {
+    // Handle connection errors with more informative messages
+    if (e.type == DioExceptionType.connectionTimeout) {
+      throw NetworkException(
+        message:
+            'Koneksi timeout. Pastikan Laravel backend sedang berjalan di ${ApiConstants.baseUrl}',
+      );
+    }
+
+    if (e.type == DioExceptionType.receiveTimeout) {
+      throw NetworkException(
+        message:
+            'Server tidak merespons. Cek koneksi internet dan backend URL.',
+      );
+    }
+
+    if (e.type == DioExceptionType.unknown) {
+      // Provide more specific error for common connection issues
+      final errorMessage = e.error?.toString() ?? '';
+      if (errorMessage.contains('Connection refused')) {
+        throw NetworkException(
+          message:
+              'Koneksi ditolak. Pastikan Laravel backend berjalan di port 8000.\nURL: ${ApiConstants.baseUrl}',
+        );
+      } else if (errorMessage.contains('Failed to connect')) {
+        throw NetworkException(
+          message:
+              'Gagal terhubung ke server.\nURL: ${ApiConstants.baseUrl}\nCek bahwa server sudah running.',
+        );
+      } else if (errorMessage.contains('SocketException')) {
+        throw NetworkException(
+          message: 'Network error - Cek koneksi internet dan URL backend.',
+        );
+      }
+      throw NetworkException(
+        message: 'Koneksi internet terputus atau server tidak tersedia.',
+      );
+    }
+
+    if (e.response != null) {
+      final statusCode = e.response!.statusCode;
+      final data = e.response!.data;
+
+      switch (statusCode) {
+        case 401:
+          throw UnauthorizedException(
+            message: data?['message'] ?? 'Tidak terotorisasi',
+          );
+        case 403:
+          throw ForbiddenException(
+            message: data?['message'] ?? 'Akses ditolak',
+          );
+        case 404:
+          throw NotFoundException(
+            message: data?['message'] ?? 'Data tidak ditemukan',
+          );
+        case 422:
+          final errors = data?['errors'] ?? {};
+          throw ValidationException(
+            message: data?['message'] ?? 'Validasi gagal',
+            errors: Map<String, List<String>>.from(
+              errors.map((key, value) {
+                final errorList = (value is List)
+                    ? List<String>.from(value)
+                    : [value.toString()];
+                return MapEntry(key, errorList);
+              }),
+            ),
+          );
+        case 500:
+          throw ServerException(message: data?['message'] ?? 'Server error');
+        default:
+          throw ApiException(
+            message:
+                data?['message'] ?? 'Error: ${statusCode ?? 'Tidak diketahui'}',
+            statusCode: statusCode,
+          );
+      }
+    }
+
+    // Generic error with more details
+    throw ApiException(
+      message: 'Terjadi kesalahan: ${e.message ?? 'Error tidak diketahui'}',
+      originalError: e,
+    );
+  }
+
+  bool isAuthenticated() => _token != null;
+
+  String? getToken() => _token;
+
+  Future<void> clearToken() async {
+    _token = null;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('api_token');
+  }
+}

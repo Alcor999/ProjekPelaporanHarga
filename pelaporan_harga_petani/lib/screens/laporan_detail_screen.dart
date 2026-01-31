@@ -1,0 +1,323 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../core/theme/app_theme.dart';
+import '../models/laporan_harga_model.dart';
+import '../providers/laporan_provider.dart';
+import '../widgets/common_widgets.dart';
+import 'create_laporan_screen.dart';
+
+class LaporanDetailScreen extends StatelessWidget {
+  final LaporanHarga laporan;
+
+  const LaporanDetailScreen({
+    Key? key,
+    required this.laporan,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: AppColors.primary,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppColors.white),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: const Text(
+          'Detail Laporan',
+          style: TextStyle(
+            color: AppColors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        actions: [
+          if (laporan.status == 'pending')
+            PopupMenuButton(
+              onSelected: (value) {
+                if (value == 'edit') {
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(
+                      builder: (_) => CreateLaporanScreen(
+                        editingLaporan: laporan,
+                      ),
+                    ),
+                  );
+                } else if (value == 'delete') {
+                  _showDeleteConfirmation(context);
+                }
+              },
+              itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                const PopupMenuItem(
+                  value: 'edit',
+                  child: Row(
+                    children: [
+                      Icon(Icons.edit, color: AppColors.primary),
+                      SizedBox(width: AppSpacing.md),
+                      Text('Edit'),
+                    ],
+                  ),
+                ),
+                const PopupMenuDivider(height: 8.0),
+                const PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete, color: AppColors.error),
+                      SizedBox(width: AppSpacing.md),
+                      Text('Hapus'),
+                    ],
+                  ),
+                ),
+              ],
+            )
+          else
+            const SizedBox(),
+        ],
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            // Status Card
+            Container(
+              color: _getStatusColor(laporan.status).withValues(alpha: 0.1),
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Status Laporan',
+                        style: AppTextStyles.labelLarge.copyWith(
+                          color: AppColors.grey600,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.md,
+                          vertical: AppSpacing.sm,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _getStatusColor(laporan.status),
+                          borderRadius: BorderRadius.circular(AppBorderRadius.sm),
+                        ),
+                        child: Text(
+                          laporan.statusLabel,
+                          style: AppTextStyles.labelSmall.copyWith(
+                            color: AppColors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: AppSpacing.md),
+                  Text(
+                    laporan.formattedHarga,
+                    style: AppTextStyles.headlineMedium.copyWith(
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  SizedBox(height: AppSpacing.sm),
+                  Text(
+                    'Harga per ${laporan.satuan}',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.grey600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Details
+            Padding(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Informasi Laporan',
+                    style: AppTextStyles.titleLarge,
+                  ),
+                  SizedBox(height: AppSpacing.lg),
+
+                  // Komoditas
+                  _buildDetailItem(
+                    icon: Icons.grain,
+                    label: 'Komoditas',
+                    value:
+                        '${laporan.komoditas?['name'] ?? '-'} - ${laporan.komoditas?['grade'] ?? '-'}',
+                  ),
+                  SizedBox(height: AppSpacing.lg),
+
+                  // Wilayah
+                  _buildDetailItem(
+                    icon: Icons.location_on,
+                    label: 'Wilayah',
+                    value: laporan.wilayah?['desa'] ?? '-',
+                    subtitle:
+                        '${laporan.wilayah?['kecamatan'] ?? ''}, ${laporan.wilayah?['kabupaten'] ?? ''}',
+                  ),
+                  SizedBox(height: AppSpacing.lg),
+
+                  // Tanggal Panen
+                  _buildDetailItem(
+                    icon: Icons.calendar_today,
+                    label: 'Tanggal Panen',
+                    value: laporan.formattedTanggalPanen,
+                  ),
+                  SizedBox(height: AppSpacing.lg),
+
+                  // Tanggal Laporan
+                  if (laporan.tanggalLaporan != null)
+                    Column(
+                      children: [
+                        _buildDetailItem(
+                          icon: Icons.event_available,
+                          label: 'Tanggal Laporan',
+                          value:
+                              '${laporan.tanggalLaporan?.day}/${laporan.tanggalLaporan?.month}/${laporan.tanggalLaporan?.year}',
+                        ),
+                        SizedBox(height: AppSpacing.lg),
+                      ],
+                    ),
+
+                  // Catatan
+                  if (laporan.catatan != null && laporan.catatan!.isNotEmpty)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Catatan',
+                          style: AppTextStyles.labelLarge,
+                        ),
+                        SizedBox(height: AppSpacing.sm),
+                        Container(
+                          padding: const EdgeInsets.all(AppSpacing.md),
+                          decoration: BoxDecoration(
+                            color: AppColors.grey100,
+                            borderRadius:
+                                BorderRadius.circular(AppBorderRadius.md),
+                          ),
+                          child: Text(
+                            laporan.catatan!,
+                            style: AppTextStyles.bodyMedium,
+                          ),
+                        ),
+                        SizedBox(height: AppSpacing.lg),
+                      ],
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailItem({
+    required IconData icon,
+    required String label,
+    required String value,
+    String? subtitle,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: AppColors.primary, size: 24),
+        SizedBox(width: AppSpacing.md),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: AppTextStyles.labelSmall.copyWith(
+                  color: AppColors.grey600,
+                ),
+              ),
+              SizedBox(height: AppSpacing.xs),
+              Text(
+                value,
+                style: AppTextStyles.bodyMedium.copyWith(
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              if (subtitle != null) ...[
+                SizedBox(height: AppSpacing.xs),
+                Text(
+                  subtitle,
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.grey600,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'approved':
+        return AppColors.success;
+      case 'rejected':
+        return AppColors.error;
+      case 'pending':
+        return AppColors.warning;
+      default:
+        return AppColors.grey500;
+    }
+  }
+
+  void _showDeleteConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Hapus Laporan'),
+        content: const Text(
+          'Apakah Anda yakin ingin menghapus laporan ini? Tindakan ini tidak dapat dibatalkan.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Batal'),
+          ),
+          Consumer<LaporanProvider>(
+            builder: (context, laporanProvider, _) {
+              return TextButton(
+                onPressed: () async {
+                  Navigator.of(context).pop();
+                  final success =
+                      await laporanProvider.deleteLaporan(laporan.id ?? 0);
+                  if (success && context.mounted) {
+                    showSuccessSnackBar(context, 'Laporan berhasil dihapus');
+                    Navigator.of(context).popUntil(
+                      (route) => route.isFirst,
+                    );
+                  } else if (!success && context.mounted) {
+                    showErrorSnackBar(
+                      context,
+                      laporanProvider.errorMessage ?? 'Gagal menghapus laporan',
+                    );
+                  }
+                },
+                child: const Text(
+                  'Hapus',
+                  style: TextStyle(color: AppColors.error),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+

@@ -187,11 +187,12 @@ class ApiService {
     }
   }
 
-  Future<Map<String, dynamic>> createLaporan(LaporanHarga laporan) async {
+  Future<Map<String, dynamic>> createLaporan(LaporanHarga laporan, {String? fotoBase64}) async {
     try {
+      final data = laporan.toJson(fotoBase64: fotoBase64);
       final response = await _dio.post(
         ApiConstants.laporan,
-        data: laporan.toJson(),
+        data: data,
       );
 
       if (response.statusCode == 201 || response.statusCode == 200) {
@@ -207,11 +208,26 @@ class ApiService {
     }
   }
 
-  Future<Map<String, dynamic>> getLaporanList({int page = 1}) async {
+  Future<Map<String, dynamic>> getLaporanList({
+    int page = 1,
+    String? status,
+    int? wilayahId,
+    int? komoditasId,
+    String? search,
+    String? tanggalDari,
+    String? tanggalSampai,
+  }) async {
     try {
+      final params = <String, dynamic>{'page': page};
+      if (status != null) params['status'] = status;
+      if (wilayahId != null) params['wilayah_id'] = wilayahId;
+      if (komoditasId != null) params['komoditas_id'] = komoditasId;
+      if (search != null && search.isNotEmpty) params['search'] = search;
+      if (tanggalDari != null) params['tanggal_dari'] = tanggalDari;
+      if (tanggalSampai != null) params['tanggal_sampai'] = tanggalSampai;
       final response = await _dio.get(
         ApiConstants.laporan,
-        queryParameters: {'page': page},
+        queryParameters: params,
       );
 
       if (response.statusCode == 200) {
@@ -244,11 +260,12 @@ class ApiService {
     }
   }
 
-  Future<LaporanHarga> updateLaporan(int id, LaporanHarga laporan) async {
+  Future<LaporanHarga> updateLaporan(int id, LaporanHarga laporan, {String? fotoBase64}) async {
     try {
+      final data = laporan.toJson(fotoBase64: fotoBase64);
       final response = await _dio.put(
         '${ApiConstants.laporanDetail}/$id',
-        data: laporan.toJson(),
+        data: data,
       );
 
       if (response.statusCode == 200) {
@@ -275,6 +292,89 @@ class ApiService {
       _handleDioException(e);
       rethrow;
     }
+  }
+
+  Future<Map<String, dynamic>> getHargaTerkini({
+    int? wilayahId,
+    int? komoditasId,
+    String? tanggal,
+  }) async {
+    try {
+      final params = <String, dynamic>{};
+      if (wilayahId != null) params['wilayah_id'] = wilayahId;
+      if (komoditasId != null) params['komoditas_id'] = komoditasId;
+      if (tanggal != null) params['tanggal'] = tanggal;
+      final response = await _dio.get(
+        ApiConstants.hargaTerkini,
+        queryParameters: params.isNotEmpty ? params : null,
+      );
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data;
+      }
+      throw ServerException(message: 'Gagal mengambil data harga');
+    } on DioException catch (e) {
+      _handleDioException(e);
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> getHargaTren({
+    int? wilayahId,
+    int? komoditasId,
+    int days = 30,
+  }) async {
+    try {
+      final params = <String, dynamic>{'days': days};
+      if (wilayahId != null) params['wilayah_id'] = wilayahId;
+      if (komoditasId != null) params['komoditas_id'] = komoditasId;
+      final response = await _dio.get(
+        ApiConstants.hargaTren,
+        queryParameters: params,
+      );
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data;
+      }
+      throw ServerException(message: 'Gagal mengambil data tren');
+    } on DioException catch (e) {
+      _handleDioException(e);
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> getNotifications({int page = 1, bool unreadOnly = false}) async {
+    try {
+      final response = await _dio.get(
+        ApiConstants.notifications,
+        queryParameters: {'page': page, 'unread_only': unreadOnly},
+      );
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data;
+      }
+      throw ServerException(message: 'Gagal mengambil notifikasi');
+    } on DioException catch (e) {
+      _handleDioException(e);
+      rethrow;
+    }
+  }
+
+  Future<int> getNotificationsUnreadCount() async {
+    try {
+      final response = await _dio.get(ApiConstants.notificationsUnreadCount);
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data['data']['count'] ?? 0;
+      }
+      return 0;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  Future<void> markNotificationAsRead(int id) async {
+    await _dio.post(ApiConstants.notificationRead(id));
+  }
+
+  Future<void> markAllNotificationsAsRead() async {
+    await _dio.post(ApiConstants.notificationsReadAll);
   }
 
   void _handleDioException(DioException e) {

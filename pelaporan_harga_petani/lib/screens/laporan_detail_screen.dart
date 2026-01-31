@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../core/constants/api_constants.dart';
 import '../core/theme/app_theme.dart';
 import '../models/laporan_harga_model.dart';
 import '../providers/laporan_provider.dart';
@@ -180,6 +182,46 @@ class LaporanDetailScreen extends StatelessWidget {
                           label: 'Tanggal Laporan',
                           value:
                               '${laporan.tanggalLaporan?.day}/${laporan.tanggalLaporan?.month}/${laporan.tanggalLaporan?.year}',
+                        ),
+                        SizedBox(height: AppSpacing.lg),
+                      ],
+                    ),
+
+                  // Alasan Ditolak
+                  if (laporan.status == 'rejected' && laporan.rejectionReason != null && laporan.rejectionReason!.isNotEmpty)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Alasan Ditolak', style: AppTextStyles.labelLarge.copyWith(color: AppColors.error)),
+                        SizedBox(height: AppSpacing.sm),
+                        Container(
+                          padding: const EdgeInsets.all(AppSpacing.md),
+                          decoration: BoxDecoration(
+                            color: AppColors.error.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(AppBorderRadius.md),
+                          ),
+                          child: Text(laporan.rejectionReason!, style: AppTextStyles.bodyMedium),
+                        ),
+                        SizedBox(height: AppSpacing.lg),
+                      ],
+                    ),
+
+                  // Foto Bukti
+                  if (laporan.fotoPath != null && laporan.fotoPath!.isNotEmpty)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Foto Bukti', style: AppTextStyles.labelLarge),
+                        SizedBox(height: AppSpacing.sm),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(AppBorderRadius.md),
+                          child: CachedNetworkImage(
+                            imageUrl: '${ApiConstants.storageUrl}/storage/${laporan.fotoPath}',
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            placeholder: (_, __) => const SizedBox(height: 150, child: Center(child: CircularProgressIndicator())),
+                            errorWidget: (_, __, ___) => const Icon(Icons.broken_image, size: 48),
+                          ),
                         ),
                         SizedBox(height: AppSpacing.lg),
                       ],

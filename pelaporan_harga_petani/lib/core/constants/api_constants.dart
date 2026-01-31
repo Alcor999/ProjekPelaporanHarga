@@ -7,6 +7,7 @@ class ApiConstants {
   // IMPORTANT: Untuk physical device, gunakan IP lokal komputer Anda, bukan localhost!
   // Pastikan Laravel berjalan dengan: php artisan serve --host=0.0.0.0 --port=8000
   static const String baseUrl = 'http://192.168.100.221:8000/api';
+  static String get storageUrl => baseUrl.replaceAll('/api', '');
 
   // Auth endpoints
   static const String login = '/login';
@@ -21,6 +22,16 @@ class ApiConstants {
   // Laporan endpoints
   static const String laporan = '/petani/laporan';
   static const String laporanDetail = '/petani/laporan';
+
+  // Public (no auth)
+  static const String hargaTerkini = '/public/harga-terkini';
+  static const String hargaTren = '/public/harga-tren';
+
+  // Notifications
+  static const String notifications = '/petani/notifications';
+  static const String notificationsUnreadCount = '/petani/notifications/unread-count';
+  static String notificationRead(int id) => '/petani/notifications/$id/read';
+  static const String notificationsReadAll = '/petani/notifications/read-all';
 
   // Timeouts
   static const Duration connectionTimeout = Duration(seconds: 30);

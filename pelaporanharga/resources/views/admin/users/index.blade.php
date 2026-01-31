@@ -11,40 +11,54 @@
     </div>
 </div>
 
-<div class="card mb-4">
-    <div class="card-header">
-        <h5 class="card-title mb-0"><i class="fas fa-filter"></i> Filter</h5>
-    </div>
-    <div class="card-body">
-        <form method="GET" action="{{ route('admin.users.petani.index') }}" class="row g-3">
-            <div class="col-md-3">
-                <label for="status" class="form-label">Status</label>
-                <select name="status" id="status" class="form-select">
+<div class="card mb-4 shadow-sm border-0">
+    <div class="card-body py-3">
+        <form method="GET" action="{{ route('admin.users.petani.index') }}" id="userFilterForm" class="row g-3 align-items-end">
+            <div class="col-md-2 col-6">
+                <label for="status" class="form-label small text-muted mb-0">Status</label>
+                <select name="status" id="status" class="form-select form-select-sm" onchange="this.form.submit()">
                     <option value="">Semua</option>
                     <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
                     <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Active</option>
                     <option value="blocked" {{ request('status') == 'blocked' ? 'selected' : '' }}>Blocked</option>
                 </select>
             </div>
-            <div class="col-md-5">
-                <label for="q" class="form-label">Cari (nama / email)</label>
-                <input type="text" name="q" id="q" value="{{ request('q') }}" class="form-control" placeholder="Ketik nama atau email">
+            <div class="col-md-4 col-12">
+                <label for="userSearchInput" class="form-label small text-muted mb-0">Cari nama / email</label>
+                <input type="text" name="q" id="userSearchInput" value="{{ request('q') }}" class="form-control form-control-sm"
+                       placeholder="Ketik untuk mencari...">
             </div>
-            <div class="col-md-4 d-flex align-items-end">
-                <button class="btn btn-primary me-2" type="submit"><i class="fas fa-search"></i> Filter</button>
-                <a href="{{ route('admin.users.petani.index') }}" class="btn btn-outline-secondary"><i class="fas fa-times"></i> Reset</a>
+            <div class="col-md-2 col-6">
+                <a href="{{ route('admin.users.petani.index') }}" class="btn btn-outline-secondary btn-sm w-100">
+                    <i class="fas fa-sync-alt me-1"></i> Reset
+                </a>
             </div>
         </form>
     </div>
 </div>
+@push('scripts')
+<script>
+(function() {
+    const form = document.getElementById('userFilterForm');
+    const input = document.getElementById('userSearchInput');
+    let debounceTimer;
+    if (input && form) {
+        input.addEventListener('input', function() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(function() { form.submit(); }, 400);
+        });
+    }
+})();
+</script>
+@endpush
 
-<div class="card">
-    <div class="card-header">
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-white">
         <h5 class="card-title mb-0"><i class="fas fa-table"></i> Daftar User Petani ({{ $petani->total() }})</h5>
     </div>
     <div class="card-body">
         <div class="table-responsive">
-            <table class="table table-striped table-hover">
+            <table class="table table-hover align-middle">
                 <thead>
                     <tr>
                         <th>Nama</th>

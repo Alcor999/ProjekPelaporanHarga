@@ -8,6 +8,7 @@ use App\Models\LaporanHarga;
 use App\Models\Wilayah;
 use App\Models\Komoditas;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class AdminController extends Controller
 {
@@ -25,6 +26,17 @@ class AdminController extends Controller
             'total_komoditas' => Komoditas::active()->count(),
         ];
 
-        return view('admin.dashboard', compact('stats'));
+        $trenHarga = LaporanHarga::select([
+                DB::raw('DATE(tanggal_laporan) as tanggal'),
+                DB::raw('AVG(harga) as harga_rata'),
+                DB::raw('COUNT(*) as jumlah')
+            ])
+            ->where('status', 'approved')
+            ->where('tanggal_laporan', '>=', now()->subDays(14))
+            ->groupBy(DB::raw('DATE(tanggal_laporan)'))
+            ->orderBy('tanggal')
+            ->get();
+
+        return view('admin.dashboard', compact('stats', 'trenHarga'));
     }
 }

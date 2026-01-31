@@ -46,13 +46,9 @@ class PublicController extends Controller
                               ->orderBy('komoditas_id')
                               ->get();
 
-        // Data untuk filter dropdown (khusus Ngawi)
-        $wilayah = Wilayah::active()
-            ->where('kabupaten', 'Ngawi')
-            ->orderBy('kecamatan')
-            ->orderBy('desa')
-            ->get();
-        $komoditas = Komoditas::active()->orderBy('name')->get();
+        // Data untuk filter dropdown
+        $wilayah = Wilayah::active()->orderBy('provinsi')->orderBy('kabupaten')->orderBy('kecamatan')->orderBy('desa')->get();
+        $komoditas = Komoditas::active()->orderBy('kategori')->orderBy('name')->get();
 
         return view('public.index', compact('hargaAgregat', 'wilayah', 'komoditas', 'tanggal', 'wilayahId', 'komoditasId'));
     }
@@ -75,7 +71,7 @@ class PublicController extends Controller
                 DB::raw('COUNT(*) as jumlah_laporan'),
                 DB::raw('MAX(tanggal_laporan) as tanggal_terakhir')
             ])
-            ->with(['wilayah:id,kecamatan,desa,kabupaten', 'komoditas:id,name,grade'])
+            ->with(['wilayah:id,kecamatan,desa,kabupaten,provinsi', 'komoditas:id,name,grade,kategori'])
             ->where('status', 'approved')
             ->whereDate('tanggal_laporan', $tanggal);
 
@@ -96,6 +92,48 @@ class PublicController extends Controller
             'success' => true,
             'data' => $data,
             'tanggal' => $tanggal
+        ]);
+    }
+
+    /**
+     * API endpoint untuk grafik tren harga
+     */
+    public function apiHargaTren(Request $request)
+    {
+        $wilayahId = $request->get('wilayah_id');
+        $komoditasId = $request->get('komoditas_id');
+        $days = min(90, max(7, (int) $request->get('days', 30)));
+
+        $startDate = now()->subDays($days)->format('Y-m-d');
+
+        $query = LaporanHarga::select([
+                DB::raw('DATE(tanggal_laporan) as tanggal'),
+                'wilayah_id',
+                'komoditas_id',
+                DB::raw('AVG(harga) as harga_rata_rata'),
+                DB::raw('MIN(harga) as harga_terendah'),
+                DB::raw('MAX(harga) as harga_tertinggi'),
+                DB::raw('COUNT(*) as jumlah_laporan')
+            ])
+            ->with(['wilayah:id,kecamatan,desa,kabupaten', 'komoditas:id,name,grade,kategori'])
+            ->where('status', 'approved')
+            ->whereDate('tanggal_laporan', '>=', $startDate);
+
+        if ($wilayahId) {
+            $query->where('wilayah_id', $wilayahId);
+        }
+        if ($komoditasId) {
+            $query->where('komoditas_id', $komoditasId);
+        }
+
+        $data = $query->groupBy(DB::raw('DATE(tanggal_laporan)'), 'wilayah_id', 'komoditas_id')
+            ->orderBy('tanggal')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $data,
+            'days' => $days
         ]);
     }
 }

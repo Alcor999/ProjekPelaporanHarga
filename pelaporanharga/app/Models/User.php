@@ -61,6 +61,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Relationship with notifications
+     */
+    public function notifications()
+    {
+        return $this->hasMany(Notification::class);
+    }
+
+    /**
      * Check if user is admin
      */
     public function isAdmin()

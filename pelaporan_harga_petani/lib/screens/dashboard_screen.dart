@@ -1,12 +1,16 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../core/theme/app_theme.dart';
 import '../models/laporan_harga_model.dart';
 import '../providers/auth_provider.dart';
 import '../providers/laporan_provider.dart';
+import '../providers/notification_provider.dart';
 import '../widgets/common_widgets.dart';
 import 'create_laporan_screen.dart';
 import 'laporan_detail_screen.dart';
+import 'harga_publik_screen.dart';
+import 'notifications_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({Key? key}) : super(key: key);
@@ -16,12 +20,45 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
+  String? _filterStatus;
+  int? _filterWilayah;
+  int? _filterKomoditas;
+  final _searchController = TextEditingController();
+  Timer? _searchDebounce;
+
   @override
   void initState() {
     super.initState();
     Future.microtask(() {
       context.read<LaporanProvider>().loadLaporanList();
+      context.read<LaporanProvider>().initReferenceData();
+      context.read<NotificationProvider>().refreshUnreadCount();
     });
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  void _onSearchChanged() {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 400), () {
+      if (mounted) _applyFilter();
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchDebounce?.cancel();
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _applyFilter() {
+    context.read<LaporanProvider>().loadLaporanList(
+      status: _filterStatus,
+      wilayahId: _filterWilayah,
+      komoditasId: _filterKomoditas,
+      search: _searchController.text.isEmpty ? null : _searchController.text,
+    );
   }
 
   @override
@@ -32,7 +69,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         backgroundColor: AppColors.primary,
         elevation: 0,
         title: const Text(
-          'Laporan Harga Padi',
+          'Laporan Harga Komoditas',
           style: TextStyle(
             color: AppColors.white,
             fontWeight: FontWeight.bold,
@@ -40,20 +77,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ),
         actions: [
+          IconButton(
+            icon: Consumer<NotificationProvider>(
+              builder: (context, np, _) => Badge(
+                isLabelVisible: np.unreadCount > 0,
+                label: Text('${np.unreadCount}'),
+                child: const Icon(Icons.notifications, color: AppColors.white),
+              ),
+            ),
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen())),
+          ),
+          IconButton(
+            icon: const Icon(Icons.trending_up, color: AppColors.white),
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const HargaPublikScreen())),
+          ),
           Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
+            padding: const EdgeInsets.all(AppSpacing.sm),
             child: Center(
               child: Consumer<AuthProvider>(
                 builder: (context, authProvider, _) {
                   return PopupMenuButton(
                     onSelected: (value) {
-                      if (value == 'logout') {
-                        _showLogoutDialog();
-                      } else if (value == 'profile') {
-                        _showProfileDialog();
-                      }
+                      if (value == 'logout') _showLogoutDialog();
+                      else if (value == 'profile') _showProfileDialog();
+                      else if (value == 'harga') Navigator.push(context, MaterialPageRoute(builder: (_) => const HargaPublikScreen()));
                     },
                     itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                      const PopupMenuItem(
+                        value: 'harga',
+                        child: Row(
+                          children: [
+                            Icon(Icons.trending_up, color: AppColors.primary),
+                            SizedBox(width: AppSpacing.md),
+                            Text('Harga Pasar'),
+                          ],
+                        ),
+                      ),
                       const PopupMenuItem(
                         value: 'profile',
                         child: Row(
@@ -105,7 +164,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           if (laporanProvider.laporanList.isEmpty) {
             return EmptyStateWidget(
               title: 'Belum Ada Laporan',
-              message: 'Mulai buat laporan harga padi Anda sekarang',
+              message: 'Mulai buat laporan harga komoditas Anda sekarang',
               icon: Icons.create_outlined,
               onRetry: () {
                 context.read<LaporanProvider>().loadLaporanList();
@@ -113,19 +172,96 @@ class _DashboardScreenState extends State<DashboardScreen> {
             );
           }
 
-          return RefreshIndicator(
-            onRefresh: () {
-              return context.read<LaporanProvider>().loadLaporanList();
-            },
+          return Column(
+            children: [
+              Container(
+                color: AppColors.grey100,
+                padding: const EdgeInsets.all(AppSpacing.md),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextField(
+                      controller: _searchController,
+                      decoration: InputDecoration(
+                        hintText: 'Cari komoditas atau catatan...',
+                        prefixIcon: const Icon(Icons.search, color: AppColors.primary),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        filled: true,
+                        fillColor: AppColors.white,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          DropdownButton<int?>(
+                            value: _filterWilayah,
+                            hint: const Text('Wilayah'),
+                            items: [
+                              const DropdownMenuItem(value: null, child: Text('Semua Wilayah')),
+                              ...laporanProvider.wilayahList.map((w) => DropdownMenuItem(value: w.id, child: Text(w.displayName, overflow: TextOverflow.ellipsis))),
+                            ],
+                            onChanged: (v) {
+                              setState(() => _filterWilayah = v);
+                              _applyFilter();
+                            },
+                          ),
+                          const SizedBox(width: 8),
+                          DropdownButton<int?>(
+                            value: _filterKomoditas,
+                            hint: const Text('Komoditas'),
+                            items: [
+                              const DropdownMenuItem(value: null, child: Text('Semua')),
+                              ...laporanProvider.komoditasList.map((k) => DropdownMenuItem(value: k.id, child: Text(k.displayName, overflow: TextOverflow.ellipsis))),
+                            ],
+                            onChanged: (v) {
+                              setState(() => _filterKomoditas = v);
+                              _applyFilter();
+                            },
+                          ),
+                          const SizedBox(width: 8),
+                          DropdownButton<String?>(
+                            value: _filterStatus,
+                            hint: const Text('Status'),
+                            items: const [
+                              DropdownMenuItem(value: null, child: Text('Semua')),
+                              DropdownMenuItem(value: 'pending', child: Text('Pending')),
+                              DropdownMenuItem(value: 'approved', child: Text('Disetujui')),
+                              DropdownMenuItem(value: 'rejected', child: Text('Ditolak')),
+                            ],
+                            onChanged: (v) {
+                              setState(() => _filterStatus = v);
+                              _applyFilter();
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: () => context.read<LaporanProvider>().loadLaporanList(
+                    status: _filterStatus,
+                    wilayahId: _filterWilayah,
+                    komoditasId: _filterKomoditas,
+                    search: _searchController.text.isEmpty ? null : _searchController.text,
+                  ),
             color: AppColors.primary,
-            child: ListView.builder(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              itemCount: laporanProvider.laporanList.length,
-              itemBuilder: (context, index) {
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    itemCount: laporanProvider.laporanList.length,
+                    itemBuilder: (context, index) {
                 final laporan = laporanProvider.laporanList[index];
-                return _buildLaporanCard(context, laporan);
-              },
-            ),
+                      return _buildLaporanCard(context, laporan);
+                    },
+                  ),
+                ),
+              ),
+            ],
           );
         },
       ),

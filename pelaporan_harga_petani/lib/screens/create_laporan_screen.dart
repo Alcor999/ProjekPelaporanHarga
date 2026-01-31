@@ -1,6 +1,9 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:image_picker/image_picker.dart';
 import '../core/theme/app_theme.dart';
 import '../models/laporan_harga_model.dart';
 import '../models/wilayah_model.dart';
@@ -29,7 +32,9 @@ class _CreateLaporanScreenState extends State<CreateLaporanScreen> {
   DateTime? _selectedTanggalPanen;
   Wilayah? _selectedWilayah;
   Komoditas? _selectedKomoditas;
+  XFile? _selectedFoto;
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final _picker = ImagePicker();
 
   @override
   void initState() {
@@ -84,6 +89,12 @@ class _CreateLaporanScreenState extends State<CreateLaporanScreen> {
         status: widget.editingLaporan?.status ?? 'pending',
       );
 
+      String? fotoBase64;
+      if (_selectedFoto != null) {
+        final bytes = await File(_selectedFoto!.path).readAsBytes();
+        fotoBase64 = 'data:image/jpeg;base64,${base64Encode(bytes)}';
+      }
+
       final laporanProvider = context.read<LaporanProvider>();
       bool success;
 
@@ -91,9 +102,10 @@ class _CreateLaporanScreenState extends State<CreateLaporanScreen> {
         success = await laporanProvider.updateLaporan(
           widget.editingLaporan!.id!,
           laporan,
+          fotoBase64: fotoBase64,
         );
       } else {
-        success = await laporanProvider.createLaporan(laporan);
+        success = await laporanProvider.createLaporan(laporan, fotoBase64: fotoBase64);
       }
 
       if (success && mounted) {
@@ -344,6 +356,44 @@ class _CreateLaporanScreenState extends State<CreateLaporanScreen> {
                     ),
                   ],
                 ),
+              ),
+              SizedBox(height: AppSpacing.lg),
+
+              // Foto Bukti (opsional)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Foto Bukti (Opsional)', style: AppTextStyles.labelLarge),
+                  const SizedBox(height: AppSpacing.sm),
+                  Row(
+                    children: [
+                      if (_selectedFoto != null) ...[
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(AppBorderRadius.md),
+                          child: SizedBox(
+                            width: 80,
+                            height: 80,
+                            child: Image.file(File(_selectedFoto!.path), fit: BoxFit.cover),
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.md),
+                      ],
+                      TextButton.icon(
+                        onPressed: () async {
+                          final x = await _picker.pickImage(source: ImageSource.gallery, maxWidth: 1024, imageQuality: 80);
+                          if (x != null) setState(() => _selectedFoto = x);
+                        },
+                        icon: const Icon(Icons.add_photo_alternate),
+                        label: Text(_selectedFoto == null ? 'Pilih Foto' : 'Ganti Foto'),
+                      ),
+                      if (_selectedFoto != null)
+                        IconButton(
+                          icon: const Icon(Icons.close, color: AppColors.error),
+                          onPressed: () => setState(() => _selectedFoto = null),
+                        ),
+                    ],
+                  ),
+                ],
               ),
               SizedBox(height: AppSpacing.lg),
 

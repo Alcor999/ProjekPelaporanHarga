@@ -71,13 +71,13 @@ class LaporanProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> updateLaporan(int id, LaporanHarga laporan) async {
+  Future<bool> updateLaporan(int id, LaporanHarga laporan, {String? fotoBase64}) async {
     try {
       _isLoading = true;
       _errorMessage = null;
       notifyListeners();
 
-      final updatedLaporan = await _apiService.updateLaporan(id, laporan);
+      final updatedLaporan = await _apiService.updateLaporan(id, laporan, fotoBase64: fotoBase64);
       final index = _laporanList.indexWhere((l) => l.id == id);
       if (index != -1) {
         _laporanList[index] = updatedLaporan;
@@ -99,13 +99,13 @@ class LaporanProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> createLaporan(LaporanHarga laporan) async {
+  Future<bool> createLaporan(LaporanHarga laporan, {String? fotoBase64}) async {
     try {
       _isLoading = true;
       _errorMessage = null;
       notifyListeners();
 
-      final response = await _apiService.createLaporan(laporan);
+      final response = await _apiService.createLaporan(laporan, fotoBase64: fotoBase64);
       final newLaporan = LaporanHarga.fromJson(response['data']);
       _laporanList.insert(0, newLaporan);
       notifyListeners();
@@ -124,22 +124,38 @@ class LaporanProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> loadLaporanList({int page = 1}) async {
+  Future<void> loadLaporanList({
+    int page = 1,
+    String? status,
+    int? wilayahId,
+    int? komoditasId,
+    String? search,
+    String? tanggalDari,
+    String? tanggalSampai,
+  }) async {
     try {
       _isLoading = true;
       _errorMessage = null;
       notifyListeners();
 
-      final response = await _apiService.getLaporanList(page: page);
+      final response = await _apiService.getLaporanList(
+        page: page,
+        status: status,
+        wilayahId: wilayahId,
+        komoditasId: komoditasId,
+        search: search,
+        tanggalDari: tanggalDari,
+        tanggalSampai: tanggalSampai,
+      );
       final laporanData = response['data'];
 
       if (laporanData is List) {
         _laporanList = (laporanData as List)
-            .map((l) => LaporanHarga.fromJson(l))
+            .map((l) => LaporanHarga.fromJson(Map<String, dynamic>.from(l as Map)))
             .toList();
       } else if (laporanData is Map && laporanData.containsKey('data')) {
         _laporanList = (laporanData['data'] as List)
-            .map((l) => LaporanHarga.fromJson(l))
+            .map((l) => LaporanHarga.fromJson(Map<String, dynamic>.from(l as Map)))
             .toList();
       }
       notifyListeners();

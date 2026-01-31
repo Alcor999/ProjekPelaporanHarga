@@ -6,23 +6,19 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\LaporanAdminController;
 use App\Http\Controllers\Admin\UserAdminController;
+use App\Http\Controllers\Admin\WilayahController;
+use App\Http\Controllers\Admin\KomoditasController;
+use App\Http\Controllers\Admin\BroadcastController;
 use App\Http\Controllers\PublicController;
 
 // Public routes
 Route::get('/', [PublicController::class, 'index'])->name('public.index');
-
-// Public API route (accessible from web frontend via JavaScript)
-// This route is also in api.php, but we keep it here for web frontend access
 Route::get('/api/public/harga-terkini', [PublicController::class, 'apiHargaTerkini'])->name('api.public.harga-terkini');
-
-// Note: Other API routes are in routes/api.php (no CSRF token required)
-// API routes in web.php would require CSRF token, which is not needed for mobile apps
 
 // Admin routes (web interface)
 Route::middleware(['auth:web', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
 
-    // Laporan management
     Route::prefix('laporan')->name('laporan.')->group(function () {
         Route::get('/', [LaporanAdminController::class, 'index'])->name('index');
         Route::get('/{laporan}', [LaporanAdminController::class, 'show'])->name('show');
@@ -32,12 +28,17 @@ Route::middleware(['auth:web', 'role:admin'])->prefix('admin')->name('admin.')->
         Route::post('/{laporan}/reject', [LaporanAdminController::class, 'reject'])->name('reject');
     });
 
-    // User petani management
     Route::prefix('users')->name('users.')->group(function () {
         Route::get('/petani', [UserAdminController::class, 'index'])->name('petani.index');
         Route::post('/petani/{user}/approve', [UserAdminController::class, 'approve'])->name('petani.approve');
         Route::post('/petani/{user}/block', [UserAdminController::class, 'block'])->name('petani.block');
     });
+
+    Route::resource('wilayah', WilayahController::class)->except(['show']);
+    Route::resource('komoditas', KomoditasController::class)->except(['show']);
+    Route::get('/broadcast', [BroadcastController::class, 'index'])->name('broadcast.index');
+    Route::get('/broadcast/create', [BroadcastController::class, 'create'])->name('broadcast.create');
+    Route::post('/broadcast', [BroadcastController::class, 'store'])->name('broadcast.store');
 });
 
 // Redirect generic /login ke halaman login admin

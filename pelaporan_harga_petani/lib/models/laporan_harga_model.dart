@@ -12,6 +12,8 @@ class LaporanHarga {
   final String? catatan;
   final String status;
   final DateTime? createdAt;
+  final String? rejectionReason;
+  final String? fotoPath;
 
   // Relasi
   final Map<String, dynamic>? wilayah;
@@ -29,6 +31,8 @@ class LaporanHarga {
     this.catatan,
     required this.status,
     this.createdAt,
+    this.rejectionReason,
+    this.fotoPath,
     this.wilayah,
     this.komoditas,
   });
@@ -46,20 +50,26 @@ class LaporanHarga {
       catatan: json['catatan'],
       status: json['status'] ?? 'pending',
       createdAt: json['created_at'] != null ? DateTime.parse(json['created_at']) : null,
+      rejectionReason: json['rejection_reason'],
+      fotoPath: json['foto_path'],
       wilayah: json['wilayah'],
       komoditas: json['komoditas'],
     );
   }
 
-  Map<String, dynamic> toJson() => {
-    'user_id': userId,
-    'wilayah_id': wilayahId,
-    'komoditas_id': komoditasId,
-    'harga': harga,
-    'satuan': satuan,
-    'tanggal_panen': DateFormat('yyyy-MM-dd').format(tanggalPanen),
-    'catatan': catatan,
-  };
+  Map<String, dynamic> toJson({String? fotoBase64}) {
+    final m = {
+      'user_id': userId,
+      'wilayah_id': wilayahId,
+      'komoditas_id': komoditasId,
+      'harga': harga,
+      'satuan': satuan,
+      'tanggal_panen': DateFormat('yyyy-MM-dd').format(tanggalPanen),
+      'catatan': catatan,
+    };
+    if (fotoBase64 != null && fotoBase64.isNotEmpty) m['foto'] = fotoBase64;
+    return m;
+  }
 
   String get formattedHarga => 'Rp${harga.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}/$satuan';
 

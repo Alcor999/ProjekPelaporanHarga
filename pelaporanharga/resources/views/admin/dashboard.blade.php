@@ -6,7 +6,7 @@
 <div class="row">
     <div class="col-12">
         <h1 class="mb-4">
-            <i class="fas fa-tachometer-alt"></i> Dashboard Admin
+            <i class="fas fa-tachometer-alt text-primary"></i> Dashboard Admin
         </h1>
     </div>
 </div>
@@ -111,7 +111,7 @@
 
     <!-- Quick Actions -->
     <div class="col-md-6 mb-4">
-        <div class="card">
+        <div class="card shadow-sm">
             <div class="card-header">
                 <h5 class="card-title mb-0">
                     <i class="fas fa-bolt"></i> Quick Actions
@@ -122,6 +122,9 @@
                     <a href="{{ route('admin.laporan.index') }}" class="btn btn-primary">
                         <i class="fas fa-list"></i> Kelola Laporan Harga
                     </a>
+                    <a href="{{ route('admin.broadcast.create') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-bullhorn"></i> Kirim Broadcast
+                    </a>
                     <a href="{{ route('public.index') }}" class="btn btn-outline-secondary" target="_blank">
                         <i class="fas fa-external-link-alt"></i> Lihat Homepage Publik
                     </a>
@@ -130,4 +133,65 @@
         </div>
     </div>
 </div>
+
+<div class="row">
+    <div class="col-12 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-line"></i> Grafik Tren Harga (14 Hari Terakhir)
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="trenChart" height="80"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('trenChart');
+    const data = @json($trenHarga);
+    if (ctx && data && data.length > 0) {
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data.map(d => d.tanggal),
+                datasets: [{
+                    label: 'Harga Rata-rata (Rp)',
+                    data: data.map(d => parseFloat(d.harga_rata)),
+                    borderColor: 'rgb(13, 110, 253)',
+                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(ctx) {
+                                return 'Rp ' + parseInt(ctx.raw).toLocaleString('id-ID');
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        ticks: {
+                            callback: function(v) { return 'Rp ' + v.toLocaleString('id-ID'); }
+                        }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+@endpush

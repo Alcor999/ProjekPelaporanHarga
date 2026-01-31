@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 
 class UserAdminController extends Controller
@@ -45,6 +46,7 @@ class UserAdminController extends Controller
         }
 
         $user->update(['status' => 'active']);
+        NotificationService::notifyAccountApproved($user);
 
         return redirect()->back()->with('success', 'Akun petani berhasil di-approve.');
     }

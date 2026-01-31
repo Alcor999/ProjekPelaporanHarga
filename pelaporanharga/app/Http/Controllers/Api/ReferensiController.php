@@ -10,15 +10,17 @@ use Illuminate\Http\Request;
 class ReferensiController extends Controller
 {
     /**
-     * Get all active wilayah
+     * Get all active wilayah (optionally filter by kabupaten)
      */
     public function wilayah(Request $request)
     {
-        $wilayah = Wilayah::active()
-            ->where('kabupaten', 'Ngawi')
-            ->orderBy('kecamatan')
-            ->orderBy('desa')
-            ->get();
+        $query = Wilayah::active()->orderBy('provinsi')->orderBy('kabupaten')->orderBy('kecamatan')->orderBy('desa');
+
+        if ($request->filled('kabupaten')) {
+            $query->where('kabupaten', $request->kabupaten);
+        }
+
+        $wilayah = $query->get();
 
         return response()->json([
             'success' => true,
@@ -27,18 +29,39 @@ class ReferensiController extends Controller
     }
 
     /**
-     * Get all active komoditas
+     * Get all active komoditas (optionally filter by kategori)
      */
     public function komoditas(Request $request)
     {
-        $komoditas = Komoditas::active()
-            ->orderBy('name')
-            ->orderBy('grade')
-            ->get();
+        $query = Komoditas::active()->orderBy('kategori')->orderBy('name')->orderBy('grade');
+
+        if ($request->filled('kategori')) {
+            $query->where('kategori', $request->kategori);
+        }
+
+        $komoditas = $query->get();
 
         return response()->json([
             'success' => true,
             'data' => $komoditas
+        ]);
+    }
+
+    /**
+     * Get list of kategori for filter
+     */
+    public function kategori(Request $request)
+    {
+        $kategori = Komoditas::active()
+            ->distinct()
+            ->pluck('kategori')
+            ->filter()
+            ->sort()
+            ->values();
+
+        return response()->json([
+            'success' => true,
+            'data' => $kategori
         ]);
     }
 }

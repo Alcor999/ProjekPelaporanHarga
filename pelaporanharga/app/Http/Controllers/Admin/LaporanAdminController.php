@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\LaporanHarga;
 use App\Models\Wilayah;
 use App\Models\Komoditas;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 
 class LaporanAdminController extends Controller
@@ -66,7 +67,8 @@ class LaporanAdminController extends Controller
             return redirect()->back()->with('error', 'Laporan sudah diproses sebelumnya');
         }
 
-        $laporan->update(['status' => 'approved']);
+        $laporan->update(['status' => 'approved', 'rejection_reason' => null]);
+        NotificationService::notifyLaporanApproved($laporan);
 
         return redirect()->back()->with('success', 'Laporan berhasil diapprove');
     }
@@ -74,13 +76,15 @@ class LaporanAdminController extends Controller
     /**
      * Reject laporan
      */
-    public function reject(LaporanHarga $laporan)
+    public function reject(Request $request, LaporanHarga $laporan)
     {
         if ($laporan->status !== 'pending') {
             return redirect()->back()->with('error', 'Laporan sudah diproses sebelumnya');
         }
 
-        $laporan->update(['status' => 'rejected']);
+        $reason = $request->input('rejection_reason', '');
+        $laporan->update(['status' => 'rejected', 'rejection_reason' => $reason]);
+        NotificationService::notifyLaporanRejected($laporan, $reason);
 
         return redirect()->back()->with('success', 'Laporan berhasil direject');
     }
@@ -108,12 +112,17 @@ class LaporanAdminController extends Controller
             'tanggal_panen' => 'required|date|before_or_equal:today',
             'catatan' => 'nullable|string|max:500',
             'status' => 'required|in:pending,approved,rejected',
+            'rejection_reason' => 'nullable|string|max:500',
         ]);
 
-        $laporan->update($request->only([
-            'harga', 'satuan', 'tanggal_panen', 'catatan', 'status'
-        ]));
+        $data = $request->only(['harga', 'satuan', 'tanggal_panen', 'catatan', 'status']);
+        if ($request->status === 'rejected') {
+            $data['rejection_reason'] = $request->rejection_reason;
+        } else {
+            $data['rejection_reason'] = null;
+        }
 
+        $laporan->update($data);
         return redirect()->route('admin.laporan.index')->with('success', 'Laporan berhasil diupdate');
     }
 }

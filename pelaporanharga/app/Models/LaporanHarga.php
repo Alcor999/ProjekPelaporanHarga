@@ -18,6 +18,8 @@ class LaporanHarga extends Model
         'tanggal_laporan',
         'catatan',
         'status',
+        'rejection_reason',
+        'foto_path',
     ];
 
     protected $casts = [

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Harga Padi Terkini - Pelaporan Harga Padi</title>
+    <title>Harga Komoditas Terkini - Pelaporan Harga</title>
 
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -12,19 +12,25 @@
 
     <style>
         .harga-card {
-            transition: transform 0.2s;
+            transition: transform 0.2s, box-shadow 0.2s;
         }
         .harga-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.12) !important;
+        }
+        #harga-container {
+            transition: opacity 0.2s ease;
         }
         .auto-refresh {
             animation: pulse 2s infinite;
         }
         @keyframes pulse {
-            0% { opacity: 1; }
+            0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
-            100% { opacity: 1; }
+        }
+        .form-select:focus, .form-control:focus {
+            border-color: var(--bs-primary);
+            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
         }
     </style>
 </head>
@@ -35,9 +41,9 @@
             <div class="row align-items-center">
                 <div class="col-md-8">
                     <h1 class="mb-0">
-                        <i class="fas fa-chart-line"></i> Harga Padi Terkini
+                        <i class="fas fa-chart-line"></i> Harga Komoditas Terkini
                     </h1>
-                    <p class="mb-0 mt-2">Informasi harga padi terkini dari petani di berbagai wilayah</p>
+                    <p class="mb-0 mt-2">Informasi harga komoditas terkini dari petani di berbagai wilayah</p>
                 </div>
                 <div class="col-md-4 text-end">
                     <div class="d-flex align-items-center justify-content-end gap-3">
@@ -55,15 +61,15 @@
     </header>
 
     <div class="container py-4">
-        <!-- Filter Form -->
-        <div class="card mb-4">
-            <div class="card-body">
-                <form method="GET" action="{{ route('public.index') }}" class="row g-3">
-                    <div class="col-md-4">
-                        <label for="wilayah_id" class="form-label">
-                            <i class="fas fa-map-marker-alt"></i> Wilayah
+        <!-- Filter (Live) -->
+        <div class="card mb-4 shadow-sm border-0">
+            <div class="card-body py-3">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-4 col-6">
+                        <label for="wilayah_id" class="form-label small text-muted mb-0">
+                            <i class="fas fa-map-marker-alt text-primary me-1"></i> Wilayah
                         </label>
-                        <select name="wilayah_id" id="wilayah_id" class="form-select">
+                        <select id="wilayah_id" class="form-select form-select-sm">
                             <option value="">Semua Wilayah</option>
                             @foreach($wilayah as $w)
                                 <option value="{{ $w->id }}" {{ $wilayahId == $w->id ? 'selected' : '' }}>
@@ -72,48 +78,36 @@
                             @endforeach
                         </select>
                     </div>
-
-                    <div class="col-md-4">
-                        <label for="komoditas_id" class="form-label">
-                            <i class="fas fa-seedling"></i> Komoditas
+                    <div class="col-md-4 col-6">
+                        <label for="komoditas_id" class="form-label small text-muted mb-0">
+                            <i class="fas fa-seedling text-success me-1"></i> Komoditas
                         </label>
-                        <select name="komoditas_id" id="komoditas_id" class="form-select">
+                        <select id="komoditas_id" class="form-select form-select-sm">
                             <option value="">Semua Komoditas</option>
                             @foreach($komoditas as $k)
                                 <option value="{{ $k->id }}" {{ $komoditasId == $k->id ? 'selected' : '' }}>
-                                    {{ $k->name }} {{ $k->grade ? '('.$k->grade.')' : '' }}
+                                    {{ ucfirst($k->kategori ?? 'padi') }} - {{ $k->name }} {{ $k->grade ? '('.$k->grade.')' : '' }}
                                 </option>
                             @endforeach
                         </select>
                     </div>
-
-                    <div class="col-md-3">
-                        <label for="tanggal" class="form-label">
-                            <i class="fas fa-calendar"></i> Tanggal
+                    <div class="col-md-4 col-6">
+                        <label for="tanggal" class="form-label small text-muted mb-0">
+                            <i class="fas fa-calendar text-info me-1"></i> Tanggal
                         </label>
-                        <input type="date" name="tanggal" id="tanggal" class="form-control"
+                        <input type="date" id="tanggal" class="form-control form-control-sm"
                                value="{{ $tanggal }}" max="{{ now()->format('Y-m-d') }}">
                     </div>
-
-                    <div class="col-md-1 d-flex align-items-end">
-                        <button type="submit" class="btn btn-primary w-100">
-                            <i class="fas fa-search"></i>
-                        </button>
-                    </div>
-                </form>
+                </div>
             </div>
         </div>
 
         <!-- Status Info -->
-        <div class="alert alert-info mb-4">
-            <div class="d-flex align-items-center">
-                <i class="fas fa-info-circle me-2"></i>
-                <div>
-                    <strong>Informasi:</strong> Data harga diperbarui secara otomatis setiap 15 detik.
-                    <span class="auto-refresh ms-2">
-                        <i class="fas fa-sync-alt"></i> Auto refresh aktif
-                    </span>
-                </div>
+        <div class="alert alert-info mb-4 d-flex align-items-center shadow-sm border-0">
+            <i class="fas fa-info-circle fa-lg me-3"></i>
+            <div>
+                <strong>Filter live</strong> — Data diperbarui otomatis saat Anda mengubah filter. Auto refresh setiap 15 detik.
+                <span class="auto-refresh ms-2"><i class="fas fa-sync-alt"></i></span>
             </div>
         </div>
 
@@ -197,11 +191,11 @@
         <div class="container">
             <div class="row">
                 <div class="col-md-6">
-                    <h5>Pelaporan Harga Padi</h5>
-                    <p class="mb-0">Sistem informasi harga padi real-time untuk membantu petani dan pembeli</p>
+                    <h5>Pelaporan Harga Komoditas</h5>
+                    <p class="mb-0">Sistem informasi harga komoditas real-time untuk membantu petani dan pembeli</p>
                 </div>
                 <div class="col-md-6 text-end">
-                    <p class="mb-0">&copy; {{ date('Y') }} Pelaporan Harga Padi. All rights reserved.</p>
+                    <p class="mb-0">&copy; {{ date('Y') }} Pelaporan Harga Komoditas. All rights reserved.</p>
                 </div>
             </div>
         </div>
@@ -219,6 +213,8 @@
         };
 
         function refreshHargaData() {
+            const container = document.getElementById('harga-container');
+            container.style.opacity = '0.6';
             fetch(`{{ route('api.public.harga-terkini') }}?${new URLSearchParams(currentFilters)}`)
                 .then(response => response.json())
                 .then(data => {
@@ -227,9 +223,11 @@
                         document.getElementById('last-update').textContent =
                             'Terakhir update: ' + new Date().toLocaleString('id-ID');
                     }
+                    container.style.opacity = '1';
                 })
                 .catch(error => {
                     console.error('Error refreshing data:', error);
+                    container.style.opacity = '1';
                 });
         }
 
@@ -317,18 +315,18 @@
         // Auto refresh every 15 seconds
         setInterval(refreshHargaData, 15000);
 
-        // Update filters when form changes
-        document.getElementById('wilayah_id').addEventListener('change', function() {
-            currentFilters.wilayah_id = this.value;
-        });
+        // Live filter - refresh immediately on change
+        function applyFilter() {
+            currentFilters.wilayah_id = document.getElementById('wilayah_id').value;
+            currentFilters.komoditas_id = document.getElementById('komoditas_id').value;
+            currentFilters.tanggal = document.getElementById('tanggal').value;
+            refreshHargaData();
+            history.replaceState(null, '', '?' + new URLSearchParams(currentFilters).toString());
+        }
 
-        document.getElementById('komoditas_id').addEventListener('change', function() {
-            currentFilters.komoditas_id = this.value;
-        });
-
-        document.getElementById('tanggal').addEventListener('change', function() {
-            currentFilters.tanggal = this.value;
-        });
+        document.getElementById('wilayah_id').addEventListener('change', applyFilter);
+        document.getElementById('komoditas_id').addEventListener('change', applyFilter);
+        document.getElementById('tanggal').addEventListener('change', applyFilter);
     </script>
 </body>
 </html>

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Komoditas extends Model
 {
     protected $fillable = [
+        'kategori',
         'name',
         'grade',
         'description',

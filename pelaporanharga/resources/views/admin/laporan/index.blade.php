@@ -13,29 +13,23 @@
     </div>
 </div>
 
-<!-- Filter Form -->
-<div class="card mb-4">
-    <div class="card-header">
-        <h5 class="card-title mb-0">
-            <i class="fas fa-filter"></i> Filter Laporan
-        </h5>
-    </div>
-    <div class="card-body">
-        <form method="GET" action="{{ route('admin.laporan.index') }}" class="row g-3">
-            <div class="col-md-3">
-                <label for="status" class="form-label">Status</label>
-                <select name="status" id="status" class="form-select">
-                    <option value="">Semua Status</option>
+<!-- Filter (Live) -->
+<div class="card mb-4 shadow-sm border-0">
+    <div class="card-body py-3">
+        <form method="GET" action="{{ route('admin.laporan.index') }}" id="filterForm" class="row g-3 align-items-end">
+            <div class="col-md-2 col-6">
+                <label for="status" class="form-label small text-muted mb-0">Status</label>
+                <select name="status" id="status" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">Semua</option>
                     <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
                     <option value="approved" {{ request('status') == 'approved' ? 'selected' : '' }}>Approved</option>
                     <option value="rejected" {{ request('status') == 'rejected' ? 'selected' : '' }}>Rejected</option>
                 </select>
             </div>
-
-            <div class="col-md-3">
-                <label for="wilayah_id" class="form-label">Wilayah</label>
-                <select name="wilayah_id" id="wilayah_id" class="form-select">
-                    <option value="">Semua Wilayah</option>
+            <div class="col-md-2 col-6">
+                <label for="wilayah_id" class="form-label small text-muted mb-0">Wilayah</label>
+                <select name="wilayah_id" id="wilayah_id" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">Semua</option>
                     @foreach($wilayah as $w)
                         <option value="{{ $w->id }}" {{ request('wilayah_id') == $w->id ? 'selected' : '' }}>
                             {{ $w->kabupaten }} - {{ $w->kecamatan }}
@@ -43,11 +37,10 @@
                     @endforeach
                 </select>
             </div>
-
-            <div class="col-md-3">
-                <label for="komoditas_id" class="form-label">Komoditas</label>
-                <select name="komoditas_id" id="komoditas_id" class="form-select">
-                    <option value="">Semua Komoditas</option>
+            <div class="col-md-2 col-6">
+                <label for="komoditas_id" class="form-label small text-muted mb-0">Komoditas</label>
+                <select name="komoditas_id" id="komoditas_id" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">Semua</option>
                     @foreach($komoditas as $k)
                         <option value="{{ $k->id }}" {{ request('komoditas_id') == $k->id ? 'selected' : '' }}>
                             {{ $k->name }} {{ $k->grade ? '('.$k->grade.')' : '' }}
@@ -55,25 +48,19 @@
                     @endforeach
                 </select>
             </div>
-
-            <div class="col-md-3">
-                <label for="tanggal_dari" class="form-label">Tanggal Dari</label>
-                <input type="date" name="tanggal_dari" id="tanggal_dari" class="form-control"
-                       value="{{ request('tanggal_dari') }}">
+            <div class="col-md-2 col-6">
+                <label for="tanggal_dari" class="form-label small text-muted mb-0">Dari</label>
+                <input type="date" name="tanggal_dari" id="tanggal_dari" class="form-control form-control-sm"
+                       value="{{ request('tanggal_dari') }}" onchange="this.form.submit()">
             </div>
-
-            <div class="col-md-3">
-                <label for="tanggal_sampai" class="form-label">Tanggal Sampai</label>
-                <input type="date" name="tanggal_sampai" id="tanggal_sampai" class="form-control"
-                       value="{{ request('tanggal_sampai') }}">
+            <div class="col-md-2 col-6">
+                <label for="tanggal_sampai" class="form-label small text-muted mb-0">Sampai</label>
+                <input type="date" name="tanggal_sampai" id="tanggal_sampai" class="form-control form-control-sm"
+                       value="{{ request('tanggal_sampai') }}" onchange="this.form.submit()">
             </div>
-
-            <div class="col-md-6 d-flex align-items-end">
-                <button type="submit" class="btn btn-primary me-2">
-                    <i class="fas fa-search"></i> Filter
-                </button>
-                <a href="{{ route('admin.laporan.index') }}" class="btn btn-outline-secondary">
-                    <i class="fas fa-times"></i> Reset
+            <div class="col-md-2 col-6">
+                <a href="{{ route('admin.laporan.index') }}" class="btn btn-outline-secondary btn-sm w-100">
+                    <i class="fas fa-sync-alt me-1"></i> Reset
                 </a>
             </div>
         </form>
@@ -81,7 +68,7 @@
 </div>
 
 <!-- Laporan Table -->
-<div class="card">
+<div class="card shadow-sm border-0">
     <div class="card-header">
         <h5 class="card-title mb-0">
             <i class="fas fa-table"></i> Daftar Laporan ({{ $laporan->total() }} total)
@@ -89,7 +76,7 @@
     </div>
     <div class="card-body">
         <div class="table-responsive">
-            <table class="table table-striped table-hover">
+            <table class="table table-hover align-middle">
                 <thead>
                     <tr>
                         <th>Tanggal</th>
@@ -144,18 +131,34 @@
                                     @if($item->status == 'pending')
                                         <form method="POST" action="{{ route('admin.laporan.approve', $item) }}" class="d-inline">
                                             @csrf
-                                            <button type="submit" class="btn btn-sm btn-success"
-                                                    onclick="return confirm('Approve laporan ini?')">
+                                            <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Approve laporan ini?')">
                                                 <i class="fas fa-check"></i>
                                             </button>
                                         </form>
-                                        <form method="POST" action="{{ route('admin.laporan.reject', $item) }}" class="d-inline">
-                                            @csrf
-                                            <button type="submit" class="btn btn-sm btn-danger"
-                                                    onclick="return confirm('Reject laporan ini?')">
-                                                <i class="fas fa-times"></i>
-                                            </button>
-                                        </form>
+                                        <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal{{ $item->id }}">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                        <div class="modal fade" id="rejectModal{{ $item->id }}" tabindex="-1">
+                                            <div class="modal-dialog">
+                                                <div class="modal-content">
+                                                    <div class="modal-header bg-danger text-white">
+                                                        <h5 class="modal-title">Reject Laporan #{{ $item->id }}</h5>
+                                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                                    </div>
+                                                    <form method="POST" action="{{ route('admin.laporan.reject', $item) }}">
+                                                        @csrf
+                                                        <div class="modal-body">
+                                                            <label class="form-label">Alasan Reject (wajib diisi)</label>
+                                                            <textarea name="rejection_reason" class="form-control" rows="3" required></textarea>
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                                            <button type="submit" class="btn btn-danger">Reject</button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
                                     @endif
                                 </div>
                             </td>

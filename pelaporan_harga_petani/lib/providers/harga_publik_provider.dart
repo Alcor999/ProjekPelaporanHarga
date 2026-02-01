@@ -16,7 +16,7 @@ class HargaPublikProvider extends ChangeNotifier {
 
   HargaPublikProvider(this._apiService);
 
-  Future<void> loadHargaTerkini({int? wilayahId, int? komoditasId, String? tanggal}) async {
+  Future<void> loadHargaTerkini({int? wilayahId, int? komoditasId}) async {
     try {
       _isLoading = true;
       _errorMessage = null;
@@ -25,7 +25,6 @@ class HargaPublikProvider extends ChangeNotifier {
       final res = await _apiService.getHargaTerkini(
         wilayahId: wilayahId,
         komoditasId: komoditasId,
-        tanggal: tanggal,
       );
       _hargaTerkini = res['data'] is List ? res['data'] : [];
       notifyListeners();

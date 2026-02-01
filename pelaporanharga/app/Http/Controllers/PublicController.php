@@ -11,87 +11,148 @@ use Illuminate\Support\Facades\DB;
 class PublicController extends Controller
 {
     /**
-     * Homepage publik dengan harga terkini
+     * Homepage publik dengan harga terkini - SEMUA data approved dengan perbandingan wilayah
      */
     public function index(Request $request)
     {
         $wilayahId = $request->get('wilayah_id');
         $komoditasId = $request->get('komoditas_id');
-        $tanggal = $request->get('tanggal', now()->format('Y-m-d'));
 
-        // Query harga agregat per wilayah dan komoditas
-        $query = LaporanHarga::select([
-                'wilayah_id',
-                'komoditas_id',
-                DB::raw('AVG(harga) as harga_rata_rata'),
-                DB::raw('MIN(harga) as harga_terendah'),
-                DB::raw('MAX(harga) as harga_tertinggi'),
-                DB::raw('COUNT(*) as jumlah_laporan')
-            ])
-            ->with(['wilayah', 'komoditas'])
-            ->where('status', 'approved')
-            ->whereDate('tanggal_laporan', $tanggal);
+        // Subquery untuk mendapatkan harga terbaru per komoditas per wilayah
+        $latestPrices = $this->getLatestApprovedPrices($wilayahId, $komoditasId);
 
-        if ($wilayahId) {
-            $query->where('wilayah_id', $wilayahId);
-        }
-
-        if ($komoditasId) {
-            $query->where('komoditas_id', $komoditasId);
-        }
-
-        // Urutkan berdasarkan ID (tanpa join ke tabel relasi agar kompatibel di semua DB)
-        $hargaAgregat = $query->groupBy('wilayah_id', 'komoditas_id')
-                              ->orderBy('wilayah_id')
-                              ->orderBy('komoditas_id')
-                              ->get();
+        // Group by komoditas untuk perbandingan antar wilayah
+        $hargaPerKomoditas = $latestPrices->groupBy('komoditas_id')->map(function ($items) {
+            $first = $items->first();
+            $hargaList = $items->map(fn($item) => (float) $item->harga_terbaru);
+            return [
+                'komoditas' => $first->komoditas,
+                'komoditas_id' => $first->komoditas_id,
+                'wilayah_data' => $items->map(fn($item) => [
+                    'wilayah_id' => $item->wilayah_id,
+                    'wilayah' => $item->wilayah,
+                    'harga_terbaru' => (float) $item->harga_terbaru,
+                    'harga_sebelumnya' => $item->harga_sebelumnya ? (float) $item->harga_sebelumnya : null,
+                    'perubahan' => $item->harga_sebelumnya ? round((float) $item->harga_terbaru - (float) $item->harga_sebelumnya, 2) : null,
+                    'perubahan_persen' => $item->harga_sebelumnya && (float) $item->harga_sebelumnya > 0
+                        ? round((((float) $item->harga_terbaru - (float) $item->harga_sebelumnya) / (float) $item->harga_sebelumnya) * 100, 1)
+                        : null,
+                    'tanggal_update' => $item->tanggal_terbaru,
+                    'jumlah_laporan' => $item->jumlah_laporan,
+                ])->values(),
+                'harga_terendah' => $hargaList->min(),
+                'harga_tertinggi' => $hargaList->max(),
+                'harga_rata_rata' => round($hargaList->avg(), 2),
+                'total_wilayah' => $items->count(),
+            ];
+        })->values();
 
         // Data untuk filter dropdown
-        $wilayah = Wilayah::active()->orderBy('provinsi')->orderBy('kabupaten')->orderBy('kecamatan')->orderBy('desa')->get();
+        $wilayah = Wilayah::active()->orderBy('provinsi')->orderBy('kabupaten')->orderBy('kecamatan')->get();
         $komoditas = Komoditas::active()->orderBy('kategori')->orderBy('name')->get();
 
-        return view('public.index', compact('hargaAgregat', 'wilayah', 'komoditas', 'tanggal', 'wilayahId', 'komoditasId'));
+        return view('public.index', compact('hargaPerKomoditas', 'wilayah', 'komoditas', 'wilayahId', 'komoditasId'));
     }
 
     /**
-     * API endpoint untuk harga terkini (untuk AJAX polling)
+     * Get latest approved prices per komoditas per wilayah with previous price for comparison
+     */
+    private function getLatestApprovedPrices($wilayahId = null, $komoditasId = null)
+    {
+        // Build base query with filters
+        $baseQuery = LaporanHarga::where('status', 'approved');
+        if ($wilayahId) {
+            $baseQuery->where('wilayah_id', $wilayahId);
+        }
+        if ($komoditasId) {
+            $baseQuery->where('komoditas_id', $komoditasId);
+        }
+
+        // Get unique wilayah-komoditas combinations
+        $combinations = (clone $baseQuery)
+            ->select('wilayah_id', 'komoditas_id')
+            ->groupBy('wilayah_id', 'komoditas_id')
+            ->get();
+
+        $results = collect();
+
+        foreach ($combinations as $combo) {
+            // Get latest approved laporan for this combination
+            $latest = LaporanHarga::where('wilayah_id', $combo->wilayah_id)
+                ->where('komoditas_id', $combo->komoditas_id)
+                ->where('status', 'approved')
+                ->orderByDesc('tanggal_laporan')
+                ->orderByDesc('id')
+                ->with(['wilayah:id,kecamatan,desa,kabupaten,provinsi', 'komoditas:id,name,grade,kategori'])
+                ->first();
+
+            if (!$latest) continue;
+
+            // Get previous price (second latest)
+            $previous = LaporanHarga::where('wilayah_id', $combo->wilayah_id)
+                ->where('komoditas_id', $combo->komoditas_id)
+                ->where('status', 'approved')
+                ->where('id', '<', $latest->id)
+                ->orderByDesc('tanggal_laporan')
+                ->orderByDesc('id')
+                ->first();
+
+            // Count total approved reports
+            $count = LaporanHarga::where('wilayah_id', $combo->wilayah_id)
+                ->where('komoditas_id', $combo->komoditas_id)
+                ->where('status', 'approved')
+                ->count();
+
+            $latest->harga_terbaru = $latest->harga;
+            $latest->tanggal_terbaru = $latest->tanggal_laporan;
+            $latest->harga_sebelumnya = $previous?->harga;
+            $latest->jumlah_laporan = $count;
+
+            $results->push($latest);
+        }
+
+        return $results;
+    }
+
+    /**
+     * API endpoint untuk harga terkini - SEMUA data approved dengan perbandingan
      */
     public function apiHargaTerkini(Request $request)
     {
         $wilayahId = $request->get('wilayah_id');
         $komoditasId = $request->get('komoditas_id');
-        $tanggal = $request->get('tanggal', now()->format('Y-m-d'));
 
-        $query = LaporanHarga::select([
-                'wilayah_id',
-                'komoditas_id',
-                DB::raw('AVG(harga) as harga_rata_rata'),
-                DB::raw('MIN(harga) as harga_terendah'),
-                DB::raw('MAX(harga) as harga_tertinggi'),
-                DB::raw('COUNT(*) as jumlah_laporan'),
-                DB::raw('MAX(tanggal_laporan) as tanggal_terakhir')
-            ])
-            ->with(['wilayah:id,kecamatan,desa,kabupaten,provinsi', 'komoditas:id,name,grade,kategori'])
-            ->where('status', 'approved')
-            ->whereDate('tanggal_laporan', $tanggal);
+        $latestPrices = $this->getLatestApprovedPrices($wilayahId, $komoditasId);
 
-        if ($wilayahId) {
-            $query->where('wilayah_id', $wilayahId);
-        }
-
-        if ($komoditasId) {
-            $query->where('komoditas_id', $komoditasId);
-        }
-
-        $data = $query->groupBy('wilayah_id', 'komoditas_id')
-                      ->orderBy('wilayah_id')
-                      ->orderBy('komoditas_id')
-                      ->get();
+        // Group by komoditas untuk perbandingan antar wilayah
+        $hargaPerKomoditas = $latestPrices->groupBy('komoditas_id')->map(function ($items) {
+            $first = $items->first();
+            $hargaList = $items->map(fn($item) => (float) $item->harga_terbaru);
+            return [
+                'komoditas' => $first->komoditas,
+                'komoditas_id' => $first->komoditas_id,
+                'wilayah_data' => $items->map(fn($item) => [
+                    'wilayah_id' => $item->wilayah_id,
+                    'wilayah' => $item->wilayah,
+                    'harga_terbaru' => (float) $item->harga_terbaru,
+                    'harga_sebelumnya' => $item->harga_sebelumnya ? (float) $item->harga_sebelumnya : null,
+                    'perubahan' => $item->harga_sebelumnya ? round((float) $item->harga_terbaru - (float) $item->harga_sebelumnya, 2) : null,
+                    'perubahan_persen' => $item->harga_sebelumnya && (float) $item->harga_sebelumnya > 0
+                        ? round((((float) $item->harga_terbaru - (float) $item->harga_sebelumnya) / (float) $item->harga_sebelumnya) * 100, 1)
+                        : null,
+                    'tanggal_update' => $item->tanggal_terbaru,
+                    'jumlah_laporan' => $item->jumlah_laporan,
+                ])->values(),
+                'harga_terendah' => $hargaList->min(),
+                'harga_tertinggi' => $hargaList->max(),
+                'harga_rata_rata' => round($hargaList->avg(), 2),
+                'total_wilayah' => $items->count(),
+            ];
+        })->values();
 
         return response()->json([
             'success' => true,
-            'data' => $data,
-            'tanggal' => $tanggal
+            'data' => $hargaPerKomoditas,
         ]);
     }
 

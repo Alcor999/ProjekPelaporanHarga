@@ -15,15 +15,13 @@ class HargaPublikScreen extends StatefulWidget {
 class _HargaPublikScreenState extends State<HargaPublikScreen> {
   int? _wilayahId;
   int? _komoditasId;
-  String? _tanggal;
 
   @override
   void initState() {
     super.initState();
-    _tanggal = DateFormat('yyyy-MM-dd').format(DateTime.now());
     Future.microtask(() {
       context.read<LaporanProvider>().initReferenceData();
-      context.read<HargaPublikProvider>().loadHargaTerkini(tanggal: _tanggal);
+      context.read<HargaPublikProvider>().loadHargaTerkini();
     });
   }
 
@@ -31,7 +29,6 @@ class _HargaPublikScreenState extends State<HargaPublikScreen> {
     context.read<HargaPublikProvider>().loadHargaTerkini(
       wilayahId: _wilayahId,
       komoditasId: _komoditasId,
-      tanggal: _tanggal,
     );
   }
 
@@ -63,80 +60,55 @@ class _HargaPublikScreenState extends State<HargaPublikScreen> {
                   children: [
                     Icon(Icons.tune, color: AppColors.primary, size: 20),
                     const SizedBox(width: 8),
-                    Text('Filter live', style: AppTextStyles.labelLarge.copyWith(color: AppColors.primary)),
+                    Text('Filter & Perbandingan Harga', style: AppTextStyles.labelLarge.copyWith(color: AppColors.primary)),
                   ],
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Consumer<LaporanProvider>(
                   builder: (context, lp, _) {
                     if (lp.wilayahList.isEmpty) lp.initReferenceData();
-                    return Row(
+                    return Column(
                       children: [
-                        Expanded(
-                          child: DropdownButtonFormField<int?>(
-                            value: _wilayahId,
-                            decoration: InputDecoration(
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            ),
-                            hint: const Text('Semua Wilayah'),
-                            items: [
-                              const DropdownMenuItem(value: null, child: Text('Semua Wilayah')),
-                              ...lp.wilayahList.map((w) => DropdownMenuItem(value: w.id, child: Text(w.displayName, overflow: TextOverflow.ellipsis))),
-                            ],
-                            onChanged: (v) {
-                              setState(() => _wilayahId = v);
-                              _applyFilter();
-                            },
+                        DropdownButtonFormField<int?>(
+                          value: _wilayahId,
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            filled: true,
+                            fillColor: AppColors.white,
                           ),
+                          hint: const Text('Semua Wilayah (Perbandingan)'),
+                          items: [
+                            const DropdownMenuItem(value: null, child: Text('Semua Wilayah (Perbandingan)')),
+                            ...lp.wilayahList.map((w) => DropdownMenuItem(value: w.id, child: Text(w.displayName, overflow: TextOverflow.ellipsis))),
+                          ],
+                          onChanged: (v) {
+                            setState(() => _wilayahId = v);
+                            _applyFilter();
+                          },
                         ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: DropdownButtonFormField<int?>(
-                            value: _komoditasId,
-                            decoration: InputDecoration(
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            ),
-                            hint: const Text('Semua Komoditas'),
-                            items: [
-                              const DropdownMenuItem(value: null, child: Text('Semua Komoditas')),
-                              ...lp.komoditasList.map((k) => DropdownMenuItem(value: k.id, child: Text(k.displayName, overflow: TextOverflow.ellipsis))),
-                            ],
-                            onChanged: (v) {
-                              setState(() => _komoditasId = v);
-                              _applyFilter();
-                            },
+                        const SizedBox(height: 8),
+                        DropdownButtonFormField<int?>(
+                          value: _komoditasId,
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            filled: true,
+                            fillColor: AppColors.white,
                           ),
+                          hint: const Text('Semua Komoditas'),
+                          items: [
+                            const DropdownMenuItem(value: null, child: Text('Semua Komoditas')),
+                            ...lp.komoditasList.map((k) => DropdownMenuItem(value: k.id, child: Text(k.displayName, overflow: TextOverflow.ellipsis))),
+                          ],
+                          onChanged: (v) {
+                            setState(() => _komoditasId = v);
+                            _applyFilter();
+                          },
                         ),
                       ],
                     );
                   },
-                ),
-                const SizedBox(height: 8),
-                InkWell(
-                  onTap: () async {
-                    final d = await showDatePicker(
-                      context: context,
-                      initialDate: _tanggal != null ? DateTime.parse(_tanggal!) : DateTime.now(),
-                      firstDate: DateTime(2020),
-                      lastDate: DateTime.now(),
-                    );
-                    if (d != null) {
-                      setState(() => _tanggal = DateFormat('yyyy-MM-dd').format(d));
-                      _applyFilter();
-                    }
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.calendar_today, color: AppColors.primary),
-                        const SizedBox(width: 8),
-                        Text(_tanggal ?? 'Pilih tanggal', style: AppTextStyles.bodyMedium),
-                      ],
-                    ),
-                  ),
                 ),
               ],
             ),
@@ -164,87 +136,261 @@ class _HargaPublikScreenState extends State<HargaPublikScreen> {
                       children: [
                         Icon(Icons.inbox, size: 64, color: AppColors.grey400),
                         const SizedBox(height: 16),
-                        const Text('Belum ada data harga untuk filter ini'),
+                        Text('Belum ada data harga yang disetujui', style: AppTextStyles.bodyLarge.copyWith(color: AppColors.grey600)),
                       ],
                     ),
                   );
                 }
                 return RefreshIndicator(
-                  onRefresh: () => hp.loadHargaTerkini(wilayahId: _wilayahId, komoditasId: _komoditasId, tanggal: _tanggal),
+                  onRefresh: () => hp.loadHargaTerkini(wilayahId: _wilayahId, komoditasId: _komoditasId),
                   color: AppColors.primary,
                   child: ListView.builder(
                     padding: const EdgeInsets.all(AppSpacing.md),
                     itemCount: hp.hargaTerkini.length,
                     itemBuilder: (context, i) {
-                      final h = hp.hargaTerkini[i];
-                      final wilayah = h['wilayah'] as Map? ?? {};
-                      final komoditas = h['komoditas'] as Map? ?? {};
-                      final avg = (h['harga_rata_rata'] ?? 0).toDouble();
-                      final min = (h['harga_terendah'] ?? 0).toDouble();
-                      final max = (h['harga_tertinggi'] ?? 0).toDouble();
-                      final jml = h['jumlah_laporan'] ?? 0;
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: AppSpacing.md),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppBorderRadius.md)),
-                        child: Padding(
-                          padding: const EdgeInsets.all(AppSpacing.md),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    wilayah['kabupaten'] ?? '-',
-                                    style: AppTextStyles.titleMedium,
-                                  ),
-                                  Text(
-                                    '${komoditas['name'] ?? ''} ${komoditas['grade'] != null ? '(${komoditas['grade']})' : ''}',
-                                    style: AppTextStyles.bodySmall.copyWith(color: AppColors.grey600),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text('Rata-rata', style: AppTextStyles.bodySmall.copyWith(color: AppColors.grey600)),
-                                      Text(
-                                        'Rp ${NumberFormat('#,###', 'id_ID').format(avg)}',
-                                        style: AppTextStyles.titleLarge.copyWith(color: AppColors.success, fontWeight: FontWeight.bold),
-                                      ),
-                                    ],
-                                  ),
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Text('Terendah', style: AppTextStyles.bodySmall.copyWith(color: AppColors.grey600)),
-                                      Text('Rp ${NumberFormat('#,###', 'id_ID').format(min)}', style: AppTextStyles.bodyMedium),
-                                    ],
-                                  ),
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Text('Tertinggi', style: AppTextStyles.bodySmall.copyWith(color: AppColors.grey600)),
-                                      Text('Rp ${NumberFormat('#,###', 'id_ID').format(max)}', style: AppTextStyles.bodyMedium),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              Text('$jml laporan', style: AppTextStyles.bodySmall.copyWith(color: AppColors.grey500)),
-                            ],
-                          ),
-                        ),
-                      );
+                      final item = hp.hargaTerkini[i];
+                      return _buildKomoditasCard(item);
                     },
                   ),
                 );
               },
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildKomoditasCard(dynamic item) {
+    final komoditas = item['komoditas'] as Map? ?? {};
+    final wilayahData = (item['wilayah_data'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+    final hargaTerendah = (item['harga_terendah'] as num?)?.toDouble() ?? 0;
+    final hargaTertinggi = (item['harga_tertinggi'] as num?)?.toDouble() ?? 0;
+    final totalWilayah = item['total_wilayah'] as int? ?? 0;
+    final range = hargaTertinggi - hargaTerendah;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: AppSpacing.lg),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 4,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header - Komoditas info
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            decoration: BoxDecoration(
+              color: AppColors.primary,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.grass, color: AppColors.white, size: 24),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${komoditas['name'] ?? '-'} ${komoditas['grade'] != null ? '(${komoditas['grade']})' : ''}',
+                        style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                      ),
+                      Text(
+                        komoditas['kategori'] != null ? komoditas['kategori'].toString().toUpperCase() : 'PADI',
+                        style: TextStyle(color: AppColors.white.withValues(alpha: 0.8), fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text('$totalWilayah wilayah', style: const TextStyle(color: AppColors.white, fontSize: 12)),
+                ),
+              ],
+            ),
+          ),
+          // Summary row
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+            color: AppColors.grey100,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildSummaryItem('Terendah', hargaTerendah, AppColors.success),
+                Container(width: 1, height: 30, color: AppColors.grey300),
+                _buildSummaryItem('Tertinggi', hargaTertinggi, AppColors.error),
+              ],
+            ),
+          ),
+          // Wilayah list
+          ...wilayahData.map((wd) => _buildWilayahRow(wd, hargaTerendah, hargaTertinggi, range, totalWilayah)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryItem(String label, double value, Color color) {
+    return Column(
+      children: [
+        Text(label, style: AppTextStyles.bodySmall.copyWith(color: AppColors.grey600)),
+        const SizedBox(height: 2),
+        Text(
+          'Rp ${NumberFormat('#,###', 'id_ID').format(value)}',
+          style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWilayahRow(Map<String, dynamic> wd, double hargaTerendah, double hargaTertinggi, double range, int totalWilayah) {
+    final wilayah = wd['wilayah'] as Map? ?? {};
+    final hargaTerbaru = (wd['harga_terbaru'] as num?)?.toDouble() ?? 0;
+    final perubahan = wd['perubahan'] as num?;
+    final perubahanPersen = wd['perubahan_persen'] as num?;
+    final tanggalUpdate = wd['tanggal_update'] as String?;
+    final jumlahLaporan = wd['jumlah_laporan'] as int? ?? 0;
+
+    final posisi = range > 0 ? ((hargaTerbaru - hargaTerendah) / range) * 100 : 50;
+    final isTerMurah = hargaTerbaru == hargaTerendah && totalWilayah > 1;
+    final isTerMahal = hargaTerbaru == hargaTertinggi && totalWilayah > 1;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: AppColors.grey200)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(wilayah['kabupaten'] ?? '-', style: AppTextStyles.labelLarge),
+                        if (isTerMurah) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(colors: [Color(0xFF198754), Color(0xFF20c997)]),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text('Termurah', style: TextStyle(color: AppColors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                        if (isTerMahal) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(colors: [Color(0xFFdc3545), Color(0xFFfd7e14)]),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text('Termahal', style: TextStyle(color: AppColors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                      ],
+                    ),
+                    Text(wilayah['kecamatan'] ?? '', style: AppTextStyles.bodySmall.copyWith(color: AppColors.grey600)),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    'Rp ${NumberFormat('#,###', 'id_ID').format(hargaTerbaru)}',
+                    style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  if (perubahan != null)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          perubahan > 0 ? Icons.arrow_upward : (perubahan < 0 ? Icons.arrow_downward : Icons.remove),
+                          size: 14,
+                          color: perubahan > 0 ? AppColors.success : (perubahan < 0 ? AppColors.error : AppColors.grey500),
+                        ),
+                        Text(
+                          perubahan > 0 ? '+${NumberFormat('#,###', 'id_ID').format(perubahan)}' : NumberFormat('#,###', 'id_ID').format(perubahan),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: perubahan > 0 ? AppColors.success : (perubahan < 0 ? AppColors.error : AppColors.grey500),
+                          ),
+                        ),
+                        if (perubahanPersen != null)
+                          Text(
+                            ' (${perubahanPersen > 0 ? '+' : ''}${perubahanPersen.toStringAsFixed(1)}%)',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: perubahan > 0 ? AppColors.success : (perubahan < 0 ? AppColors.error : AppColors.grey500),
+                            ),
+                          ),
+                      ],
+                    ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              if (totalWilayah > 1) ...[
+                Expanded(
+                  child: Container(
+                    height: 6,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(3),
+                      gradient: const LinearGradient(colors: [Color(0xFF198754), Color(0xFFffc107), Color(0xFFdc3545)]),
+                    ),
+                    child: Stack(
+                      children: [
+                        Positioned(
+                          left: posisi.clamp(0, 100) / 100 * (MediaQuery.of(context).size.width - 100),
+                          child: Container(
+                            width: 12,
+                            height: 12,
+                            transform: Matrix4.translationValues(-6, -3, 0),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: AppColors.white, width: 2),
+                              boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+              ],
+              Text(
+                tanggalUpdate != null ? DateFormat('dd/MM/yy').format(DateTime.parse(tanggalUpdate)) : '-',
+                style: AppTextStyles.bodySmall.copyWith(color: AppColors.grey500),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(color: AppColors.grey200, borderRadius: BorderRadius.circular(4)),
+                child: Text('$jumlahLaporan lap', style: const TextStyle(fontSize: 10, color: AppColors.grey600)),
+              ),
+            ],
           ),
         ],
       ),

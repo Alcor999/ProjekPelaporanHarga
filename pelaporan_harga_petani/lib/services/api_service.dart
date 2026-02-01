@@ -297,13 +297,11 @@ class ApiService {
   Future<Map<String, dynamic>> getHargaTerkini({
     int? wilayahId,
     int? komoditasId,
-    String? tanggal,
   }) async {
     try {
       final params = <String, dynamic>{};
       if (wilayahId != null) params['wilayah_id'] = wilayahId;
       if (komoditasId != null) params['komoditas_id'] = komoditasId;
-      if (tanggal != null) params['tanggal'] = tanggal;
       final response = await _dio.get(
         ApiConstants.hargaTerkini,
         queryParameters: params.isNotEmpty ? params : null,

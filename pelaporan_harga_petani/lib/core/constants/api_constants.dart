@@ -27,6 +27,15 @@ class ApiConstants {
   static const String hargaTerkini = '/public/harga-terkini';
   static const String hargaTren = '/public/harga-tren';
 
+  // Suppliers (public)
+  static const String suppliers = '/suppliers';
+  static String supplierDetail(int id) => '/suppliers/$id';
+
+  // Penyetoran (petani)
+  static const String penyetoran = '/petani/penyetoran';
+  static String penyetoranDetail(int id) => '/petani/penyetoran/$id';
+  static String supplierRating(int id) => '/petani/suppliers/$id/rating';
+
   // Notifications
   static const String notifications = '/petani/notifications';
   static const String notificationsUnreadCount = '/petani/notifications/unread-count';

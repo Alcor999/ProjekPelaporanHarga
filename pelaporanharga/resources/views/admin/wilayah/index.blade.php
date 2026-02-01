@@ -49,14 +49,34 @@
                             @endif
                         </td>
                         <td>
-                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="editWilayah({{ json_encode($w) }})">
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="editWilayah({{ json_encode($w) }})" title="Edit">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <form method="POST" action="{{ route('admin.wilayah.destroy', $w) }}" class="d-inline" onsubmit="return confirm('Hapus wilayah ini?')">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
-                            </form>
+                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteWilayahModal{{ $w->id }}" title="Hapus">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            <div class="modal fade" id="deleteWilayahModal{{ $w->id }}" tabindex="-1">
+                                <div class="modal-dialog modal-dialog-centered">
+                                    <div class="modal-content">
+                                        <div class="modal-header bg-danger text-white">
+                                            <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>Hapus Wilayah</h5>
+                                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <form method="POST" action="{{ route('admin.wilayah.destroy', $w) }}">
+                                            @csrf
+                                            @method('DELETE')
+                                            <div class="modal-body">
+                                                <p class="mb-0">Apakah Anda yakin ingin menghapus wilayah <strong>{{ $w->kecamatan }}, {{ $w->kabupaten }}</strong>? Tindakan ini tidak dapat dibatalkan.</p>
+                                                <p class="text-muted small mt-2 mb-0"><i class="fas fa-info-circle me-1"></i>Pastikan tidak ada laporan yang menggunakan wilayah ini.</p>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                                <button type="submit" class="btn btn-danger"><i class="fas fa-trash me-1"></i>Hapus</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
                         </td>
                     </tr>
                     @empty

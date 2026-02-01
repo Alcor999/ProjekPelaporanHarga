@@ -69,6 +69,22 @@ class User extends Authenticatable
     }
 
     /**
+     * Relationship with penyetoran (petani's deposits to suppliers)
+     */
+    public function penyetoran()
+    {
+        return $this->hasMany(Penyetoran::class);
+    }
+
+    /**
+     * Relationship with supplier ratings (petani's reviews)
+     */
+    public function supplierRatings()
+    {
+        return $this->hasMany(SupplierRating::class);
+    }
+
+    /**
      * Check if user is admin
      */
     public function isAdmin()

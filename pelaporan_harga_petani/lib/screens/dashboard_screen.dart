@@ -11,6 +11,7 @@ import 'create_laporan_screen.dart';
 import 'laporan_detail_screen.dart';
 import 'harga_publik_screen.dart';
 import 'notifications_screen.dart';
+import 'supplier_list_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({Key? key}) : super(key: key);
@@ -91,6 +92,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
             icon: const Icon(Icons.trending_up, color: AppColors.white),
             onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const HargaPublikScreen())),
           ),
+          IconButton(
+            icon: const Icon(Icons.store, color: AppColors.white),
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SupplierListScreen())),
+          ),
           Padding(
             padding: const EdgeInsets.all(AppSpacing.sm),
             child: Center(
@@ -101,6 +106,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       if (value == 'logout') _showLogoutDialog();
                       else if (value == 'profile') _showProfileDialog();
                       else if (value == 'harga') Navigator.push(context, MaterialPageRoute(builder: (_) => const HargaPublikScreen()));
+                      else if (value == 'supplier') Navigator.push(context, MaterialPageRoute(builder: (_) => const SupplierListScreen()));
                     },
                     itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
                       const PopupMenuItem(
@@ -110,6 +116,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             Icon(Icons.trending_up, color: AppColors.primary),
                             SizedBox(width: AppSpacing.md),
                             Text('Harga Pasar'),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'supplier',
+                        child: Row(
+                          children: [
+                            Icon(Icons.store, color: AppColors.primary),
+                            SizedBox(width: AppSpacing.md),
+                            Text('Setor Hasil Panen'),
                           ],
                         ),
                       ),
@@ -265,29 +281,190 @@ class _DashboardScreenState extends State<DashboardScreen> {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => const CreateLaporanScreen(),
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (ctx) => DraggableScrollableSheet(
+              initialChildSize: 0.95,
+              minChildSize: 0.5,
+              maxChildSize: 1,
+              builder: (_, __) => Container(
+                decoration: const BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                ),
+                child: Column(
+                  children: [
+                    Container(
+                      margin: const EdgeInsets.only(top: 12, bottom: 8),
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: AppColors.grey400,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const Expanded(child: CreateLaporanScreen(isModal: true)),
+                  ],
+                ),
+              ),
             ),
           );
         },
         backgroundColor: AppColors.primary,
-        child: const Icon(Icons.add, color: AppColors.white),
+        icon: const Icon(Icons.add, color: AppColors.white),
+        label: const Text('Buat Laporan', style: TextStyle(color: AppColors.white, fontWeight: FontWeight.bold)),
+      ),
+    );
+  }
+
+  void _showLaporanModal(BuildContext context, LaporanHarga laporan) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.4,
+        maxChildSize: 0.9,
+        builder: (_, controller) => Container(
+          decoration: const BoxDecoration(
+            color: AppColors.background,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              Container(
+                margin: const EdgeInsets.only(top: 12, bottom: 8),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.grey400,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Expanded(
+                child: ListView(
+                  controller: controller,
+                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(laporan.komoditas?['name'] ?? 'Padi', style: AppTextStyles.titleLarge),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: _getStatusColor(laporan.status).withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(laporan.statusLabel, style: TextStyle(color: _getStatusColor(laporan.status), fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    _buildModalRow('Harga', laporan.formattedHarga),
+                    _buildModalRow('Wilayah', '${laporan.wilayah?['desa'] ?? ''}, ${laporan.wilayah?['kecamatan'] ?? ''}'),
+                    _buildModalRow('Tanggal Panen', laporan.formattedTanggalPanen),
+                    if (laporan.catatan != null && laporan.catatan!.isNotEmpty) _buildModalRow('Catatan', laporan.catatan!),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          Navigator.push(ctx, MaterialPageRoute(builder: (_) => LaporanDetailScreen(laporan: laporan)));
+                        },
+                        icon: const Icon(Icons.open_in_new),
+                        label: const Text('Lihat Detail Lengkap'),
+                        style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 12)),
+                      ),
+                    ),
+                    if (laporan.status == 'pending') ...[
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            Navigator.push(ctx, MaterialPageRoute(builder: (_) => CreateLaporanScreen(editingLaporan: laporan)));
+                          },
+                          icon: const Icon(Icons.edit),
+                          label: const Text('Edit Laporan'),
+                          style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 12)),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            _showDeleteDialog(context, laporan);
+                          },
+                          icon: const Icon(Icons.delete, color: AppColors.error),
+                          label: const Text('Hapus', style: TextStyle(color: AppColors.error)),
+                          style: OutlinedButton.styleFrom(foregroundColor: AppColors.error, padding: const EdgeInsets.symmetric(vertical: 12)),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildModalRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: AppTextStyles.bodySmall.copyWith(color: AppColors.grey600)),
+          const SizedBox(height: 4),
+          Text(value, style: AppTextStyles.bodyMedium),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteDialog(BuildContext context, LaporanHarga laporan) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(children: [Icon(Icons.warning_amber_rounded, color: AppColors.warning), SizedBox(width: 8), Text('Hapus Laporan')]),
+        content: const Text('Apakah Anda yakin ingin menghapus laporan ini? Tindakan ini tidak dapat dibatalkan.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
+          FilledButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final success = await context.read<LaporanProvider>().deleteLaporan(laporan.id ?? 0);
+              if (context.mounted) {
+                if (success) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Laporan berhasil dihapus'), backgroundColor: AppColors.success));
+                }
+              }
+            },
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('Hapus'),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildLaporanCard(BuildContext context, LaporanHarga laporan) {
     return GestureDetector(
-      onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => LaporanDetailScreen(laporan: laporan),
-          ),
-        );
-      },
+      onTap: () => _showLaporanModal(context, laporan),
       child: Card(
         margin: const EdgeInsets.only(bottom: AppSpacing.md),
         shape: RoundedRectangleBorder(

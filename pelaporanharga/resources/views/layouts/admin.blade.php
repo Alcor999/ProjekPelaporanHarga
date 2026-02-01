@@ -11,9 +11,16 @@
         .navbar { box-shadow: 0 2px 4px rgba(0,0,0,.1); }
         .card { border: none; transition: transform .2s, box-shadow .2s; }
         .card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.08); }
-        .stat-card { border-left: 4px solid; }
+        .stat-card { transition: transform .2s, box-shadow .2s; }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,.12) !important; }
         .sidebar-collapse { max-height: 0; overflow: hidden; }
         @media (max-width: 991px) { .navbar-collapse { max-height: 70vh; overflow-y: auto; } }
+        .modal.fade .modal-dialog { transform: scale(0.9); transition: transform 0.2s ease-out; }
+        .modal.show .modal-dialog { transform: scale(1); }
+        .modal-content { border: none; box-shadow: 0 10px 40px rgba(0,0,0,.2); border-radius: 12px; overflow: hidden; }
+        .modal-header { padding: 1rem 1.5rem; }
+        .modal-body { padding: 1.5rem; }
+        .modal-footer { padding: 1rem 1.5rem; }
     </style>
     @stack('styles')
 </head>
@@ -44,17 +51,28 @@
                         </a>
                     </li>
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle {{ request()->routeIs('admin.wilayah.*') || request()->routeIs('admin.komoditas.*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
+                        <a class="nav-link dropdown-toggle {{ request()->routeIs('admin.wilayah.*') || request()->routeIs('admin.komoditas.*') || request()->routeIs('admin.supplier.*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">
                             <i class="fas fa-database"></i> Master Data
                         </a>
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="{{ route('admin.wilayah.index') }}"><i class="fas fa-map-marker-alt"></i> Wilayah</a></li>
                             <li><a class="dropdown-item" href="{{ route('admin.komoditas.index') }}"><i class="fas fa-seedling"></i> Komoditas</a></li>
+                            <li><a class="dropdown-item" href="{{ route('admin.supplier.index') }}"><i class="fas fa-truck"></i> Supplier</a></li>
                         </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('admin.penyetoran.*') ? 'active' : '' }}" href="{{ route('admin.penyetoran.index') }}">
+                            <i class="fas fa-hand-holding-usd"></i> Penyetoran
+                        </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {{ request()->routeIs('admin.broadcast.*') ? 'active' : '' }}" href="{{ route('admin.broadcast.index') }}">
                             <i class="fas fa-bullhorn"></i> Broadcast
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('admin.statistik.*') ? 'active' : '' }}" href="{{ route('admin.statistik.index') }}">
+                            <i class="fas fa-chart-bar"></i> Statistik
                         </a>
                     </li>
                 </ul>

@@ -21,7 +21,7 @@ class RoleMiddleware
                 return response()->json(['message' => 'Unauthorized'], 401);
             }
             // For web requests, redirect to login
-            return redirect()->route('admin.login');
+            return redirect()->to('/panel/login');
         }
 
         if ($request->user()->role !== $role) {

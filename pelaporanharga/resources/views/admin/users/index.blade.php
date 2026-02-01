@@ -72,7 +72,11 @@
                 <tbody>
                     @forelse($petani as $user)
                         <tr>
-                            <td>{{ $user->name }}</td>
+                            <td>
+                                <button type="button" class="btn btn-link p-0 text-decoration-none text-dark" data-bs-toggle="modal" data-bs-target="#viewUserModal{{ $user->id }}">
+                                    {{ $user->name }}
+                                </button>
+                            </td>
                             <td>{{ $user->email }}</td>
                             <td>{{ $user->phone }}</td>
                             <td>{{ $user->address }}</td>
@@ -88,22 +92,92 @@
                             <td>
                                 <div class="btn-group" role="group">
                                     @if($user->status === 'pending')
-                                        <form method="POST" action="{{ route('admin.users.petani.approve', $user) }}" class="d-inline">
-                                            @csrf
-                                            <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Approve akun ini?')">
-                                                <i class="fas fa-check"></i>
-                                            </button>
-                                        </form>
+                                        <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#approveModal{{ $user->id }}" title="Approve">
+                                            <i class="fas fa-check"></i>
+                                        </button>
                                     @endif
-
                                     @if($user->status !== 'blocked')
-                                        <form method="POST" action="{{ route('admin.users.petani.block', $user) }}" class="d-inline ms-1">
-                                            @csrf
-                                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Blokir akun ini?')">
-                                                <i class="fas fa-ban"></i>
-                                            </button>
-                                        </form>
+                                        <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#blockModal{{ $user->id }}" title="Blokir">
+                                            <i class="fas fa-ban"></i>
+                                        </button>
                                     @endif
+                                </div>
+                                @if($user->status === 'pending')
+                                <div class="modal fade" id="approveModal{{ $user->id }}" tabindex="-1">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content">
+                                            <div class="modal-header bg-success text-white">
+                                                <h5 class="modal-title"><i class="fas fa-check me-2"></i>Approve Petani</h5>
+                                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <form method="POST" action="{{ route('admin.users.petani.approve', $user) }}">
+                                                @csrf
+                                                <div class="modal-body">
+                                                    <p class="mb-0">Aktifkan akun <strong>{{ $user->name }}</strong> ({{ $user->email }})? Petani akan dapat login dan melaporkan harga.</p>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                                    <button type="submit" class="btn btn-success"><i class="fas fa-check me-1"></i>Approve</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                                @endif
+                                @if($user->status !== 'blocked')
+                                <div class="modal fade" id="blockModal{{ $user->id }}" tabindex="-1">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content">
+                                            <div class="modal-header bg-danger text-white">
+                                                <h5 class="modal-title"><i class="fas fa-ban me-2"></i>Blokir Petani</h5>
+                                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <form method="POST" action="{{ route('admin.users.petani.block', $user) }}">
+                                                @csrf
+                                                <div class="modal-body">
+                                                    <p class="mb-0">Blokir akun <strong>{{ $user->name }}</strong> ({{ $user->email }})? Petani tidak akan dapat login.</p>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                                    <button type="submit" class="btn btn-danger"><i class="fas fa-ban me-1"></i>Blokir</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                                @endif
+                                <!-- View User Modal -->
+                                <div class="modal fade" id="viewUserModal{{ $user->id }}" tabindex="-1">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content">
+                                            <div class="modal-header bg-primary text-white">
+                                                <h5 class="modal-title"><i class="fas fa-user me-2"></i>Detail Petani</h5>
+                                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <p><strong>Nama:</strong> {{ $user->name }}</p>
+                                                <p><strong>Email:</strong> {{ $user->email }}</p>
+                                                <p><strong>Telepon:</strong> {{ $user->phone ?? '-' }}</p>
+                                                <p><strong>Alamat:</strong> {{ $user->address ?? '-' }}</p>
+                                                <p><strong>Status:</strong> @if($user->status==='pending')<span class="badge bg-warning">Pending</span>@elseif($user->status==='active')<span class="badge bg-success">Active</span>@else<span class="badge bg-danger">Blocked</span>@endif</p>
+                                            </div>
+                                            <div class="modal-footer">
+                                                @if($user->status === 'pending')
+                                                <form method="POST" action="{{ route('admin.users.petani.approve', $user) }}" class="d-inline">
+                                                    @csrf
+                                                    <button type="submit" class="btn btn-success btn-sm"><i class="fas fa-check me-1"></i>Approve</button>
+                                                </form>
+                                                @endif
+                                                @if($user->status !== 'blocked')
+                                                <form method="POST" action="{{ route('admin.users.petani.block', $user) }}" class="d-inline">
+                                                    @csrf
+                                                    <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-ban me-1"></i>Blokir</button>
+                                                </form>
+                                                @endif
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </td>
                         </tr>

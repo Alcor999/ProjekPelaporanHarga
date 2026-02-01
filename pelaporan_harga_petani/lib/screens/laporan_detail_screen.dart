@@ -321,21 +321,22 @@ class LaporanDetailScreen extends StatelessWidget {
   void _showDeleteConfirmation(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Hapus Laporan'),
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(children: [Icon(Icons.warning_amber_rounded, color: AppColors.warning), SizedBox(width: 8), Text('Hapus Laporan')]),
         content: const Text(
           'Apakah Anda yakin ingin menghapus laporan ini? Tindakan ini tidak dapat dibatalkan.',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.pop(ctx),
             child: const Text('Batal'),
           ),
           Consumer<LaporanProvider>(
             builder: (context, laporanProvider, _) {
-              return TextButton(
+              return FilledButton(
                 onPressed: () async {
-                  Navigator.of(context).pop();
+                  Navigator.pop(ctx);
                   final success =
                       await laporanProvider.deleteLaporan(laporan.id ?? 0);
                   if (success && context.mounted) {
@@ -350,10 +351,8 @@ class LaporanDetailScreen extends StatelessWidget {
                     );
                   }
                 },
-                child: const Text(
-                  'Hapus',
-                  style: TextStyle(color: AppColors.error),
-                ),
+                style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+                child: const Text('Hapus'),
               );
             },
           ),

@@ -12,9 +12,14 @@
 </div>
 
 <div class="row">
+    <div class="col-12 mb-3">
+        <a href="{{ route('admin.statistik.index') }}" class="btn btn-outline-primary btn-sm">
+            <i class="fas fa-chart-bar me-1"></i> Lihat Statistik Lengkap
+        </a>
+    </div>
     <!-- Total Petani -->
     <div class="col-md-3 mb-4">
-        <div class="card bg-primary text-white">
+        <div class="card bg-primary text-white shadow-sm stat-card">
             <div class="card-body">
                 <div class="d-flex justify-content-between">
                     <div>
@@ -31,7 +36,7 @@
 
     <!-- Total Laporan -->
     <div class="col-md-3 mb-4">
-        <div class="card bg-success text-white">
+        <div class="card bg-success text-white shadow-sm stat-card">
             <div class="card-body">
                 <div class="d-flex justify-content-between">
                     <div>
@@ -48,7 +53,7 @@
 
     <!-- Laporan Pending -->
     <div class="col-md-3 mb-4">
-        <div class="card bg-warning text-white">
+        <div class="card bg-warning text-white shadow-sm stat-card">
             <div class="card-body">
                 <div class="d-flex justify-content-between">
                     <div>
@@ -65,7 +70,7 @@
 
     <!-- Laporan Approved -->
     <div class="col-md-3 mb-4">
-        <div class="card bg-info text-white">
+        <div class="card bg-info text-white shadow-sm stat-card">
             <div class="card-body">
                 <div class="d-flex justify-content-between">
                     <div>

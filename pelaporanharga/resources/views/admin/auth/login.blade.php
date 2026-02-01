@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login Admin - Pelaporan Harga Padi</title>
+    <title>Login Admin - Pelaporan Harga Komoditas</title>
 
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -33,7 +33,7 @@
                         <div class="text-center mb-4">
                             <i class="fas fa-chart-line fa-3x text-primary mb-3"></i>
                             <h3>Admin Panel</h3>
-                            <p class="text-muted">Pelaporan Harga Padi</p>
+                            <p class="text-muted">Pelaporan Harga Komoditas</p>
                         </div>
 
                         @if(session('success'))
@@ -52,7 +52,7 @@
                             </div>
                         @endif
 
-                        <form method="POST" action="{{ route('admin.login.post') }}">
+                        <form method="POST" action="{{ url('/panel/login') }}" id="loginForm">
                             @csrf
 
                             <div class="mb-3">
@@ -71,11 +71,24 @@
                             </div>
 
                             <div class="d-grid">
-                                <button type="submit" class="btn btn-primary btn-lg">
-                                    <i class="fas fa-sign-in-alt"></i> Masuk
+                                <button type="submit" class="btn btn-primary btn-lg" id="loginBtn">
+                                    <span class="btn-text"><i class="fas fa-sign-in-alt"></i> Masuk</span>
+                                    <span class="btn-loading d-none">
+                                        <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                        Memproses...
+                                    </span>
                                 </button>
                             </div>
                         </form>
+
+                        <script>
+                            document.getElementById('loginForm').addEventListener('submit', function() {
+                                var btn = document.getElementById('loginBtn');
+                                btn.disabled = true;
+                                btn.querySelector('.btn-text').classList.add('d-none');
+                                btn.querySelector('.btn-loading').classList.remove('d-none');
+                            });
+                        </script>
 
                         <hr class="my-4">
 

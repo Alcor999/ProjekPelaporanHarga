@@ -15,10 +15,12 @@ import '../widgets/common_widgets.dart';
 
 class CreateLaporanScreen extends StatefulWidget {
   final LaporanHarga? editingLaporan;
+  final bool isModal;
 
   const CreateLaporanScreen({
     Key? key,
     this.editingLaporan,
+    this.isModal = false,
   }) : super(key: key);
 
   @override

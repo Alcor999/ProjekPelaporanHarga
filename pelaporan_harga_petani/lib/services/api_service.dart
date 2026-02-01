@@ -377,6 +377,96 @@ class ApiService {
     await _dio.post(ApiConstants.notificationsReadAll);
   }
 
+  // Suppliers (public - no auth required for list/detail)
+  Future<List<Map<String, dynamic>>> getSuppliers({int? wilayahId, int? komoditasId}) async {
+    try {
+      final params = <String, dynamic>{};
+      if (wilayahId != null) params['wilayah_id'] = wilayahId;
+      if (komoditasId != null) params['komoditas_id'] = komoditasId;
+      final response = await _dio.get(ApiConstants.suppliers, queryParameters: params.isEmpty ? null : params);
+      if (response.statusCode == 200) {
+        final data = response.data;
+        final list = data is Map && data['data'] != null ? data['data'] : (data is List ? data : []);
+        return List<Map<String, dynamic>>.from((list as List).map((e) => Map<String, dynamic>.from(e as Map)));
+      }
+      return [];
+    } on DioException catch (e) {
+      _handleDioException(e);
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>?> getSupplierDetail(int id) async {
+    try {
+      final response = await _dio.get(ApiConstants.supplierDetail(id));
+      if (response.statusCode == 200) {
+        final data = response.data;
+        if (data is Map) return Map<String, dynamic>.from(data);
+      }
+      return null;
+    } on DioException catch (e) {
+      _handleDioException(e);
+      rethrow;
+    }
+  }
+
+  // Penyetoran (petani - auth required)
+  Future<Map<String, dynamic>> getPenyetoranList({int page = 1, String? status}) async {
+    try {
+      final params = <String, dynamic>{'page': page};
+      if (status != null && status.isNotEmpty) params['status'] = status;
+      final response = await _dio.get(ApiConstants.penyetoran, queryParameters: params);
+      if (response.statusCode == 200) {
+        return Map<String, dynamic>.from(response.data as Map);
+      }
+      throw ServerException(message: 'Gagal mengambil daftar penyetoran');
+    } on DioException catch (e) {
+      _handleDioException(e);
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> createPenyetoran({
+    required int supplierId,
+    required int komoditasId,
+    required double jumlah,
+    required String tanggal,
+    String? satuan,
+    String? catatan,
+  }) async {
+    try {
+      final data = {
+        'supplier_id': supplierId,
+        'komoditas_id': komoditasId,
+        'jumlah': jumlah,
+        'tanggal': tanggal,
+        if (satuan != null) 'satuan': satuan,
+        if (catatan != null) 'catatan': catatan,
+      };
+      final response = await _dio.post(ApiConstants.penyetoran, data: data);
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        return Map<String, dynamic>.from(response.data as Map);
+      }
+      throw ServerException(message: 'Gagal mencatat penyetoran');
+    } on DioException catch (e) {
+      _handleDioException(e);
+      rethrow;
+    }
+  }
+
+  Future<void> submitSupplierRating(int supplierId, {required int rating, String? ulasan, int? penyetoranId}) async {
+    try {
+      final data = {'rating': rating, if (ulasan != null) 'ulasan': ulasan, if (penyetoranId != null) 'penyetoran_id': penyetoranId};
+      final response = await _dio.post(ApiConstants.supplierRating(supplierId), data: data);
+      if (response.statusCode != 201 && response.statusCode != 200) {
+        throw ServerException(message: 'Gagal menyimpan rating');
+      }
+    } on DioException catch (e) {
+      _handleDioException(e);
+      rethrow;
+    }
+  }
+
   void _handleDioException(DioException e) {
     // Handle connection errors with more informative messages
     if (e.type == DioExceptionType.connectionTimeout) {

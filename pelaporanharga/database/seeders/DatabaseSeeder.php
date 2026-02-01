@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             AdminUserSeeder::class,
             WilayahSeeder::class,
             KomoditasSeeder::class,
+            SupplierSeeder::class,
         ]);
     }
 }

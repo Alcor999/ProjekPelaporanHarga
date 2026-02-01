@@ -58,14 +58,34 @@
                             @endif
                         </td>
                         <td>
-                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="editKomoditas({{ json_encode($k) }})">
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="editKomoditas({{ json_encode($k) }})" title="Edit">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <form method="POST" action="{{ route('admin.komoditas.destroy', $k) }}" class="d-inline" onsubmit="return confirm('Hapus komoditas ini?')">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
-                            </form>
+                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteKomoditasModal{{ $k->id }}" title="Hapus">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            <div class="modal fade" id="deleteKomoditasModal{{ $k->id }}" tabindex="-1">
+                                <div class="modal-dialog modal-dialog-centered">
+                                    <div class="modal-content">
+                                        <div class="modal-header bg-danger text-white">
+                                            <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>Hapus Komoditas</h5>
+                                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <form method="POST" action="{{ route('admin.komoditas.destroy', $k) }}">
+                                            @csrf
+                                            @method('DELETE')
+                                            <div class="modal-body">
+                                                <p class="mb-0">Apakah Anda yakin ingin menghapus komoditas <strong>{{ $k->name }} {{ $k->grade ? '('.$k->grade.')' : '' }}</strong>? Tindakan ini tidak dapat dibatalkan.</p>
+                                                <p class="text-muted small mt-2 mb-0"><i class="fas fa-info-circle me-1"></i>Pastikan tidak ada laporan yang menggunakan komoditas ini.</p>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                                <button type="submit" class="btn btn-danger"><i class="fas fa-trash me-1"></i>Hapus</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
                         </td>
                     </tr>
                     @empty

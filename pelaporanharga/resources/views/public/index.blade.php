@@ -51,7 +51,7 @@
                             <i class="fas fa-clock me-2"></i>
                             <small id="last-update">Terakhir update: {{ now()->format('d/m/Y H:i') }}</small>
                         </div>
-                        <a href="{{ route('admin.login') }}" class="btn btn-light btn-sm">
+                        <a href="/panel/login" class="btn btn-light btn-sm" target="_self">
                             <i class="fas fa-sign-in-alt me-1"></i> Login Admin
                         </a>
                     </div>

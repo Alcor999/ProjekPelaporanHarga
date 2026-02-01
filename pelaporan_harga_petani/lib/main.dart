@@ -10,6 +10,8 @@ import 'screens/dashboard_screen.dart';
 import 'screens/splash_screen.dart';
 import 'providers/notification_provider.dart';
 import 'providers/harga_publik_provider.dart';
+import 'providers/supplier_provider.dart';
+import 'providers/penyetoran_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,6 +38,12 @@ void main() async {
         ),
         ChangeNotifierProvider<HargaPublikProvider>(
           create: (context) => HargaPublikProvider(context.read<ApiService>()),
+        ),
+        ChangeNotifierProvider<SupplierProvider>(
+          create: (context) => SupplierProvider(context.read<ApiService>()),
+        ),
+        ChangeNotifierProvider<PenyetoranProvider>(
+          create: (context) => PenyetoranProvider(context.read<ApiService>()),
         ),
       ],
       child: const MyApp(),

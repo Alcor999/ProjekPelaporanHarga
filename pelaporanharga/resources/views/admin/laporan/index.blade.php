@@ -122,45 +122,117 @@
                             </td>
                             <td>
                                 <div class="btn-group" role="group">
-                                    <a href="{{ route('admin.laporan.show', $item) }}" class="btn btn-sm btn-outline-primary">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#viewModal{{ $item->id }}" title="Lihat Detail">
                                         <i class="fas fa-eye"></i>
-                                    </a>
-                                    <a href="{{ route('admin.laporan.edit', $item) }}" class="btn btn-sm btn-outline-secondary">
+                                    </button>
+                                    <a href="{{ route('admin.laporan.edit', $item) }}" class="btn btn-sm btn-outline-secondary" title="Edit">
                                         <i class="fas fa-edit"></i>
                                     </a>
                                     @if($item->status == 'pending')
-                                        <form method="POST" action="{{ route('admin.laporan.approve', $item) }}" class="d-inline">
-                                            @csrf
-                                            <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Approve laporan ini?')">
-                                                <i class="fas fa-check"></i>
-                                            </button>
-                                        </form>
-                                        <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal{{ $item->id }}">
+                                        <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#approveModal{{ $item->id }}" title="Approve">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal{{ $item->id }}" title="Reject">
                                             <i class="fas fa-times"></i>
                                         </button>
-                                        <div class="modal fade" id="rejectModal{{ $item->id }}" tabindex="-1">
-                                            <div class="modal-dialog">
-                                                <div class="modal-content">
-                                                    <div class="modal-header bg-danger text-white">
-                                                        <h5 class="modal-title">Reject Laporan #{{ $item->id }}</h5>
-                                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                                                    </div>
-                                                    <form method="POST" action="{{ route('admin.laporan.reject', $item) }}">
-                                                        @csrf
-                                                        <div class="modal-body">
-                                                            <label class="form-label">Alasan Reject (wajib diisi)</label>
-                                                            <textarea name="rejection_reason" class="form-control" rows="3" required></textarea>
-                                                        </div>
-                                                        <div class="modal-footer">
-                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                                                            <button type="submit" class="btn btn-danger">Reject</button>
-                                                        </div>
-                                                    </form>
-                                                </div>
-                                            </div>
-                                        </div>
                                     @endif
                                 </div>
+                                <!-- View Modal -->
+                                <div class="modal fade" id="viewModal{{ $item->id }}" tabindex="-1">
+                                    <div class="modal-dialog modal-dialog-centered modal-lg">
+                                        <div class="modal-content">
+                                            <div class="modal-header bg-primary text-white">
+                                                <h5 class="modal-title"><i class="fas fa-file-alt me-2"></i>Detail Laporan #{{ $item->id }}</h5>
+                                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div class="row g-3">
+                                                    <div class="col-md-6">
+                                                        <label class="text-muted small">Komoditas</label>
+                                                        <p class="mb-0 fw-bold">{{ $item->komoditas->name }} {{ $item->komoditas->grade ? '('.$item->komoditas->grade.')' : '' }}</p>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="text-muted small">Harga</label>
+                                                        <p class="mb-0 fw-bold text-success fs-5">Rp {{ number_format($item->harga, 0, ',', '.') }}/{{ $item->satuan }}</p>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="text-muted small">Wilayah</label>
+                                                        <p class="mb-0">{{ $item->wilayah->desa ?? '-' }}, {{ $item->wilayah->kecamatan }}, {{ $item->wilayah->kabupaten }}</p>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="text-muted small">Petani</label>
+                                                        <p class="mb-0">{{ $item->user->name }}</p>
+                                                        <small class="text-muted">{{ $item->user->email }}</small>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="text-muted small">Tanggal Panen</label>
+                                                        <p class="mb-0">{{ $item->tanggal_panen->format('d/m/Y') }}</p>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="text-muted small">Status</label>
+                                                        <p class="mb-0">@if($item->status=='pending')<span class="badge bg-warning">Pending</span>@elseif($item->status=='approved')<span class="badge bg-success">Approved</span>@else<span class="badge bg-danger">Rejected</span>@endif</p>
+                                                    </div>
+                                                    @if($item->catatan)
+                                                    <div class="col-12">
+                                                        <label class="text-muted small">Catatan</label>
+                                                        <p class="mb-0">{{ $item->catatan }}</p>
+                                                    </div>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <a href="{{ route('admin.laporan.show', $item) }}" class="btn btn-primary">Halaman Lengkap</a>
+                                                <a href="{{ route('admin.laporan.edit', $item) }}" class="btn btn-outline-secondary">Edit</a>
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                @if($item->status == 'pending')
+                                <!-- Approve Modal -->
+                                <div class="modal fade" id="approveModal{{ $item->id }}" tabindex="-1">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content">
+                                            <div class="modal-header bg-success text-white">
+                                                <h5 class="modal-title"><i class="fas fa-check me-2"></i>Approve Laporan</h5>
+                                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <form method="POST" action="{{ route('admin.laporan.approve', $item) }}">
+                                                @csrf
+                                                <div class="modal-body">
+                                                    <p class="mb-0">Apakah Anda yakin ingin menyetujui laporan <strong>{{ $item->komoditas->name }}</strong> dari {{ $item->user->name }}? Petani akan menerima notifikasi.</p>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                                    <button type="submit" class="btn btn-success"><i class="fas fa-check me-1"></i>Approve</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Reject Modal -->
+                                <div class="modal fade" id="rejectModal{{ $item->id }}" tabindex="-1">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content">
+                                            <div class="modal-header bg-danger text-white">
+                                                <h5 class="modal-title"><i class="fas fa-times me-2"></i>Reject Laporan #{{ $item->id }}</h5>
+                                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <form method="POST" action="{{ route('admin.laporan.reject', $item) }}">
+                                                @csrf
+                                                <div class="modal-body">
+                                                    <label class="form-label">Alasan Reject (wajib diisi)</label>
+                                                    <textarea name="rejection_reason" class="form-control" rows="3" required placeholder="Tulis alasan penolakan..."></textarea>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                                    <button type="submit" class="btn btn-danger"><i class="fas fa-times me-1"></i>Reject</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                                @endif
                             </td>
                         </tr>
                     @empty

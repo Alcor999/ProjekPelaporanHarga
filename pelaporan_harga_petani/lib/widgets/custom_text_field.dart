@@ -68,15 +68,22 @@ class _CustomTextFieldState extends State<CustomTextField> {
             hintStyle: AppTextStyles.bodySmall,
             prefixIcon: widget.prefixIcon,
             suffixIcon: widget.obscureText
-                ? GestureDetector(
-                    onTap: () {
+                ? IconButton(
+                    tooltip: _obscureText
+                        ? 'Tampilkan password'
+                        : 'Sembunyikan password',
+                    constraints: const BoxConstraints(
+                      minWidth: 44,
+                      minHeight: 44,
+                    ),
+                    onPressed: () {
                       setState(() {
                         _obscureText = !_obscureText;
                       });
                     },
-                    child: Icon(
+                    icon: Icon(
                       _obscureText ? Icons.visibility_off : Icons.visibility,
-                      color: AppColors.grey500,
+                      color: AppColors.grey600,
                     ),
                   )
                 : widget.suffixIcon,

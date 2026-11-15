@@ -14,7 +14,9 @@ class SupplierController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Supplier::with(['wilayah', 'harga.komoditas', 'jadwal'])->withCount('ratings');
+        $query = Supplier::with(['wilayah', 'harga.komoditas', 'jadwal'])
+            ->withCount('ratings')
+            ->withAvg('ratings', 'rating');
         if ($request->filled('search')) {
             $s = $request->search;
             $query->where(function ($q) use ($s) {
@@ -81,7 +83,7 @@ class SupplierController extends Controller
     {
         $request->validate([
             'komoditas_id' => 'required|exists:komoditas,id',
-            'harga_per_satuan' => 'required|numeric|min:0',
+            'harga_per_satuan' => 'required|numeric|gt:0|max:999999999999.99',
             'satuan' => 'nullable|string|max:20',
         ]);
         $data = $request->only(['komoditas_id', 'harga_per_satuan']);

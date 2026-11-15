@@ -53,7 +53,7 @@
 
     <!-- Laporan Pending -->
     <div class="col-md-3 mb-4">
-        <div class="card bg-warning text-white shadow-sm stat-card">
+        <div class="card bg-warning shadow-sm stat-card">
             <div class="card-body">
                 <div class="d-flex justify-content-between">
                     <div>
@@ -148,7 +148,14 @@
                 </h5>
             </div>
             <div class="card-body">
+                @if($trenHarga->isNotEmpty())
                 <canvas id="trenChart" height="80"></canvas>
+                @else
+                <div class="text-center text-muted py-4">
+                    <i class="fas fa-chart-line fa-2x mb-2 d-block"></i>
+                    Belum ada data laporan yang disetujui dalam 14 hari terakhir.
+                </div>
+                @endif
             </div>
         </div>
     </div>

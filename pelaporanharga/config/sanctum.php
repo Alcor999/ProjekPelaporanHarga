@@ -47,7 +47,9 @@ return [
     |
     */
 
-    'expiration' => null,
+    'expiration' => ($exp = env('SANCTUM_TOKEN_EXPIRATION')) !== null && $exp !== ''
+        ? (int) $exp
+        : null,
 
     /*
     |--------------------------------------------------------------------------

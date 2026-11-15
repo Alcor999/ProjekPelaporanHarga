@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../core/theme/app_theme.dart';
 import '../providers/supplier_provider.dart';
@@ -21,6 +22,7 @@ class _SupplierListScreenState extends State<SupplierListScreen> {
   void initState() {
     super.initState();
     Future.microtask(() {
+      if (!mounted) return;
       context.read<LaporanProvider>().initReferenceData();
       context.read<SupplierProvider>().loadSuppliers(wilayahId: _filterWilayah, komoditasId: _filterKomoditas);
     });
@@ -47,6 +49,7 @@ class _SupplierListScreenState extends State<SupplierListScreen> {
         ),
         actions: [
           IconButton(
+            tooltip: 'Riwayat penyetoran',
             icon: const Icon(Icons.history, color: AppColors.white),
             onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PenyetoranListScreen())),
           ),
@@ -64,17 +67,19 @@ class _SupplierListScreenState extends State<SupplierListScreen> {
                   children: [
                     Icon(Icons.tune, color: AppColors.primary, size: 20),
                     const SizedBox(width: 8),
-                    Text('Filter live', style: AppTextStyles.labelLarge.copyWith(color: AppColors.primary)),
+                    Expanded(
+                      child: Text('Filter Supplier', style: AppTextStyles.labelLarge.copyWith(color: AppColors.primary)),
+                    ),
                   ],
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Consumer<LaporanProvider>(
                   builder: (context, lp, _) {
-                    if (lp.wilayahList.isEmpty) lp.initReferenceData();
                     return Column(
                       children: [
                         DropdownButtonFormField<int?>(
-                          value: _filterWilayah,
+                          isExpanded: true,
+                          value: lp.wilayahList.any((w) => w.id == _filterWilayah) ? _filterWilayah : null,
                           decoration: InputDecoration(
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -95,7 +100,8 @@ class _SupplierListScreenState extends State<SupplierListScreen> {
                         ),
                         const SizedBox(height: 8),
                         DropdownButtonFormField<int?>(
-                          value: _filterKomoditas,
+                          isExpanded: true,
+                          value: lp.komoditasList.any((k) => k.id == _filterKomoditas) ? _filterKomoditas : null,
                           decoration: InputDecoration(
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -105,7 +111,7 @@ class _SupplierListScreenState extends State<SupplierListScreen> {
                           hint: const Text('Semua Komoditas'),
                           items: [
                             const DropdownMenuItem(value: null, child: Text('Semua Komoditas')),
-                            ...lp.komoditasList.map((k) => DropdownMenuItem(value: k.id, child: Text(k.displayName))),
+                            ...lp.komoditasList.map((k) => DropdownMenuItem(value: k.id, child: Text(k.displayName, overflow: TextOverflow.ellipsis))),
                           ],
                           onChanged: (v) {
                             setState(() {
@@ -129,25 +135,46 @@ class _SupplierListScreenState extends State<SupplierListScreen> {
                 }
                 if (sp.error != null && sp.supplierList.isEmpty) {
                   return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.error_outline, size: 48, color: AppColors.error),
-                        const SizedBox(height: 16),
-                        Text(sp.error!, textAlign: TextAlign.center, style: TextStyle(color: AppColors.error)),
-                      ],
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                          const SizedBox(height: 16),
+                          Text(sp.error!, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.error)),
+                          const SizedBox(height: 16),
+                          ElevatedButton.icon(
+                            onPressed: _applyFilter,
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Coba Lagi'),
+                          ),
+                        ],
+                      ),
                     ),
                   );
                 }
                 if (sp.supplierList.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.store, size: 64, color: AppColors.grey400),
-                        const SizedBox(height: 16),
-                        Text('Belum ada supplier', style: AppTextStyles.bodyLarge.copyWith(color: AppColors.grey600)),
-                      ],
+                  return RefreshIndicator(
+                    onRefresh: () => sp.loadSuppliers(wilayahId: _filterWilayah, komoditasId: _filterKomoditas),
+                    color: AppColors.primary,
+                    child: LayoutBuilder(
+                      builder: (context, constraints) => SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        child: SizedBox(
+                          height: constraints.maxHeight,
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.store, size: 64, color: AppColors.grey500),
+                                const SizedBox(height: 16),
+                                Text('Belum ada supplier', style: AppTextStyles.bodyLarge.copyWith(color: AppColors.grey600)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
                   );
                 }
@@ -232,7 +259,10 @@ class _SupplierListScreenState extends State<SupplierListScreen> {
                         color: AppColors.success.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Text('$komoName: Rp ${hrga.toStringAsFixed(0)}/$satuan', style: AppTextStyles.labelSmall.copyWith(color: AppColors.success)),
+                      child: Text(
+                        '$komoName: Rp ${NumberFormat('#,##0', 'id_ID').format(hrga)}/$satuan',
+                        style: AppTextStyles.labelSmall.copyWith(color: AppColors.success),
+                      ),
                     );
                   }).toList(),
                 ),

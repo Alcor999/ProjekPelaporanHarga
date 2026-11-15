@@ -28,6 +28,11 @@ class Wilayah extends Model
         return $this->hasMany(LaporanHarga::class);
     }
 
+    public function suppliers()
+    {
+        return $this->hasMany(Supplier::class);
+    }
+
     /**
      * Scope for active wilayah
      */

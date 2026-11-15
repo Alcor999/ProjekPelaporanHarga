@@ -10,7 +10,10 @@ class SupplierController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Supplier::with(['wilayah', 'harga.komoditas', 'jadwal'])->active()->withCount('ratings');
+        $query = Supplier::with(['wilayah', 'harga.komoditas', 'jadwal'])
+            ->active()
+            ->withCount('ratings')
+            ->withAvg('ratings', 'rating');
         if ($request->filled('wilayah_id')) {
             $query->where('wilayah_id', $request->wilayah_id);
         }
@@ -19,7 +22,7 @@ class SupplierController extends Controller
         }
         $suppliers = $query->orderBy('name')->get();
         $data = $suppliers->map(function ($s) {
-            $avgRating = round($s->ratings()->avg('rating') ?? 0, 1);
+            $avgRating = round((float) ($s->ratings_avg_rating ?? 0), 1);
             return [
                 'id' => $s->id,
                 'name' => $s->name,
@@ -59,7 +62,7 @@ class SupplierController extends Controller
             return response()->json(['message' => 'Supplier tidak ditemukan'], 404);
         }
         $supplier->load(['wilayah', 'harga.komoditas', 'jadwal', 'ratings.user']);
-        $avg = round($supplier->ratings()->avg('rating') ?? 0, 1);
+        $avg = round((float) ($supplier->ratings->avg('rating') ?? 0), 1);
         return response()->json([
             'id' => $supplier->id,
             'name' => $supplier->name,

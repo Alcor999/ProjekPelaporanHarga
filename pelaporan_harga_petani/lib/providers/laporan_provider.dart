@@ -10,6 +10,7 @@ class LaporanProvider extends ChangeNotifier {
 
   // Private variables
   String? _errorMessage;
+  String? _referenceError;
   bool _isLoadingKomoditas = false;
   bool _isLoadingWilayah = false;
   bool _isLoading = false;
@@ -23,6 +24,7 @@ class LaporanProvider extends ChangeNotifier {
 
   // Getters
   String? get errorMessage => _errorMessage;
+  String? get referenceError => _referenceError;
   bool get isLoadingKomoditas => _isLoadingKomoditas;
   bool get isLoadingWilayah => _isLoadingWilayah;
   bool get isLoading => _isLoading;
@@ -34,6 +36,7 @@ class LaporanProvider extends ChangeNotifier {
   // Methods
   void reset() {
     _errorMessage = null;
+    _referenceError = null;
     _selectedLaporan = null;
     _komoditasList = [];
     _wilayahList = [];
@@ -43,7 +46,17 @@ class LaporanProvider extends ChangeNotifier {
 
   void clearError() {
     _errorMessage = null;
+    _referenceError = null;
     notifyListeners();
+  }
+
+  String _formatValidationError(ValidationException e) {
+    for (final list in e.errors.values) {
+      if (list.isNotEmpty) {
+        return list.first;
+      }
+    }
+    return e.message;
   }
 
   void setSelectedLaporan(LaporanHarga? laporan) {
@@ -71,13 +84,23 @@ class LaporanProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> updateLaporan(int id, LaporanHarga laporan, {String? fotoBase64}) async {
+  Future<bool> updateLaporan(
+    int id,
+    LaporanHarga laporan, {
+    String? fotoBase64,
+    bool removeFoto = false,
+  }) async {
     try {
       _isLoading = true;
       _errorMessage = null;
       notifyListeners();
 
-      final updatedLaporan = await _apiService.updateLaporan(id, laporan, fotoBase64: fotoBase64);
+      final updatedLaporan = await _apiService.updateLaporan(
+        id,
+        laporan,
+        fotoBase64: fotoBase64,
+        removeFoto: removeFoto,
+      );
       final index = _laporanList.indexWhere((l) => l.id == id);
       if (index != -1) {
         _laporanList[index] = updatedLaporan;
@@ -85,11 +108,11 @@ class LaporanProvider extends ChangeNotifier {
       }
       notifyListeners();
       return true;
-    } on ApiException catch (e) {
-      _errorMessage = e.message;
+    } on ValidationException catch (e) {
+      _errorMessage = _formatValidationError(e);
       notifyListeners();
       return false;
-    } on ValidationException catch (e) {
+    } on ApiException catch (e) {
       _errorMessage = e.message;
       notifyListeners();
       return false;
@@ -110,11 +133,11 @@ class LaporanProvider extends ChangeNotifier {
       _laporanList.insert(0, newLaporan);
       notifyListeners();
       return true;
-    } on ApiException catch (e) {
-      _errorMessage = e.message;
+    } on ValidationException catch (e) {
+      _errorMessage = _formatValidationError(e);
       notifyListeners();
       return false;
-    } on ValidationException catch (e) {
+    } on ApiException catch (e) {
       _errorMessage = e.message;
       notifyListeners();
       return false;
@@ -150,7 +173,7 @@ class LaporanProvider extends ChangeNotifier {
       final laporanData = response['data'];
 
       if (laporanData is List) {
-        _laporanList = (laporanData as List)
+        _laporanList = laporanData
             .map((l) => LaporanHarga.fromJson(Map<String, dynamic>.from(l as Map)))
             .toList();
       } else if (laporanData is Map && laporanData.containsKey('data')) {
@@ -171,13 +194,13 @@ class LaporanProvider extends ChangeNotifier {
   Future<void> loadKomoditas() async {
     try {
       _isLoadingKomoditas = true;
-      _errorMessage = null;
+      _referenceError = null;
       notifyListeners();
 
       _komoditasList = await _apiService.getKomoditas();
       notifyListeners();
     } on ApiException catch (e) {
-      _errorMessage = e.message;
+      _referenceError = e.message;
       notifyListeners();
     } finally {
       _isLoadingKomoditas = false;
@@ -188,13 +211,13 @@ class LaporanProvider extends ChangeNotifier {
   Future<void> loadWilayah() async {
     try {
       _isLoadingWilayah = true;
-      _errorMessage = null;
+      _referenceError = null;
       notifyListeners();
 
       _wilayahList = await _apiService.getWilayah();
       notifyListeners();
     } on ApiException catch (e) {
-      _errorMessage = e.message;
+      _referenceError = e.message;
       notifyListeners();
     } finally {
       _isLoadingWilayah = false;
@@ -203,10 +226,14 @@ class LaporanProvider extends ChangeNotifier {
   }
 
   Future<void> initReferenceData() async {
+    _referenceError = null;
     try {
       await Future.wait([loadKomoditas(), loadWilayah()]);
+    } on ApiException catch (e) {
+      _referenceError = e.message;
+      notifyListeners();
     } catch (e) {
-      _errorMessage = e.toString();
+      _referenceError = e.toString();
       notifyListeners();
     }
   }

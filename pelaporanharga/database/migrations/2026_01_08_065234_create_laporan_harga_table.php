@@ -16,10 +16,10 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->onDelete('cascade'); // petani yang melapor
             $table->foreignId('wilayah_id')->constrained('wilayah')->onDelete('cascade'); // explicitly use 'wilayah' table
             $table->foreignId('komoditas_id')->constrained('komoditas')->onDelete('cascade'); // explicitly use 'komoditas' table
-            $table->decimal('harga', 10, 2); // harga per kg/satuan
+            $table->decimal('harga', 15, 2); // harga per kg/satuan
             $table->string('satuan')->default('kg'); // kg, ton, dll
             $table->date('tanggal_panen'); // kapan dipanen
-            $table->date('tanggal_laporan')->default(now()); // kapan dilaporkan
+            $table->date('tanggal_laporan')->nullable(); // diisi eksplisit saat laporan dibuat
             $table->text('catatan')->nullable(); // catatan tambahan
             $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');
             $table->timestamps();

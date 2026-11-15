@@ -7,8 +7,6 @@
     .stat-card { transition: transform 0.2s, box-shadow 0.2s; }
     .stat-card:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0,0,0,0.1) !important; }
     .chart-container { position: relative; height: 300px; }
-    .live-badge { animation: pulse 2s infinite; }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
     .table-stat tr:hover { background: rgba(13, 110, 253, 0.05); }
 </style>
 @endpush
@@ -71,7 +69,7 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h6 class="card-title opacity-75">Total Petani</h6>
+                        <h6 class="card-title">Total Petani</h6>
                         <h2 class="mb-0" id="stat-petani">{{ number_format($stats['total_petani']) }}</h2>
                         <small>Aktif: {{ number_format($stats['petani_aktif']) }}</small>
                     </div>
@@ -85,7 +83,7 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h6 class="card-title opacity-75">Total Laporan</h6>
+                        <h6 class="card-title">Total Laporan</h6>
                         <h2 class="mb-0" id="stat-laporan">{{ number_format($stats['total_laporan']) }}</h2>
                         <small>Periode: {{ number_format($stats['laporan_periode']) }}</small>
                     </div>
@@ -99,7 +97,7 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h6 class="card-title opacity-75">Status Laporan</h6>
+                        <h6 class="card-title">Status Laporan</h6>
                         <small>Pending: {{ $stats['laporan_pending'] }} | Approved: {{ $stats['laporan_approved'] }} | Rejected: {{ $stats['laporan_rejected'] }}</small>
                     </div>
                     <i class="fas fa-tasks fa-3x opacity-50"></i>
@@ -112,9 +110,9 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h6 class="card-title opacity-75">Harga Rata Periode</h6>
+                        <h6 class="card-title">Harga Rata Periode</h6>
                         <h4 class="mb-0" id="stat-harga">Rp {{ number_format($stats['harga_rata_periode'], 0, ',', '.') }}</h4>
-                        <small>/kg</small>
+                        <small id="stat-satuan">/{{ $stats['satuan_periode'] ?? 'kg' }}</small>
                     </div>
                     <i class="fas fa-coins fa-3x opacity-50"></i>
                 </div>
@@ -134,6 +132,10 @@
             <div class="card-body">
                 <div class="chart-container">
                     <canvas id="trenChart"></canvas>
+                    <div id="tren-empty" class="text-center text-muted py-5 d-none">
+                        <i class="fas fa-chart-line fa-2x mb-2 d-block"></i>
+                        <span>Belum ada data tren untuk filter yang dipilih</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -151,7 +153,7 @@
                     <span class="badge bg-info">{{ ucfirst($pk->kategori ?? 'lainnya') }}</span>
                     <div class="text-end">
                         <strong>{{ $pk->jumlah }}</strong> laporan
-                        <br><small class="text-success">Rp {{ number_format($pk->harga_rata ?? 0, 0, ',', '.') }}/kg</small>
+                        <br><small class="text-success">Rp {{ number_format($pk->harga_rata ?? 0, 0, ',', '.') }}/{{ $stats['satuan_periode'] ?? 'kg' }}</small>
                     </div>
                 </div>
                 @empty
@@ -208,7 +210,7 @@
                         <tbody>
                             @forelse($perKomoditas as $pk)
                             <tr>
-                                <td><strong>{{ $pk->komoditas->name ?? '-' }}</strong> {{ $pk->komoditas->grade ? '('.$pk->komoditas->grade.')' : '' }}<br><small class="badge bg-secondary">{{ $pk->komoditas->kategori ?? '' }}</small></td>
+                                <td><strong>{{ $pk->komoditas?->name ?? '-' }}</strong> {{ $pk->komoditas?->grade ? '('.$pk->komoditas->grade.')' : '' }}<br><small class="badge bg-secondary">{{ $pk->komoditas?->kategori ?? '' }}</small></td>
                                 <td>{{ $pk->jumlah_laporan }}</td>
                                 <td class="text-success">Rp {{ number_format($pk->harga_rata ?? 0, 0, ',', '.') }}</td>
                                 <td><small>Rp {{ number_format($pk->harga_min ?? 0, 0, ',', '.') }} - Rp {{ number_format($pk->harga_max ?? 0, 0, ',', '.') }}</small></td>
@@ -267,10 +269,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function initChart() {
         const ctx = document.getElementById('trenChart');
+        const emptyEl = document.getElementById('tren-empty');
         if (!ctx) return;
-        if (trenChart) trenChart.destroy();
+        if (trenChart) {
+            trenChart.destroy();
+            trenChart = null;
+        }
 
         if (trenData && trenData.length > 0) {
+            ctx.classList.remove('d-none');
+            if (emptyEl) emptyEl.classList.add('d-none');
             trenChart = new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -296,13 +304,21 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
             });
+        } else {
+            ctx.classList.add('d-none');
+            if (emptyEl) emptyEl.classList.remove('d-none');
         }
     }
     initChart();
 
     // Live refresh stats (setiap 30 detik)
     function refreshStats() {
-        fetch('{{ url("/admin/statistik-live") }}?periode={{ $periode }}', {
+        const params = new URLSearchParams({
+            periode: '{{ $periode }}',
+            wilayah_id: '{{ $wilayahId ?? '' }}',
+            komoditas_id: '{{ $komoditasId ?? '' }}'
+        });
+        fetch(`{{ route('admin.statistik.api') }}?${params.toString()}`, {
             headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
             credentials: 'same-origin'
         })
@@ -311,13 +327,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.success) {
                     const s = data.stats;
                     const el = id => document.getElementById(id);
-                    if (el('stat-petani')) el('stat-petani').textContent = s.total_petani?.toLocaleString() || '0';
-                    if (el('stat-laporan')) el('stat-laporan').textContent = s.total_laporan?.toLocaleString() || '0';
-                    if (el('stat-harga')) el('stat-harga').textContent = 'Rp ' + (s.harga_rata || 0).toLocaleString('id-ID');
-                    if (data.tren && data.tren.length > 0) {
-                        trenData = data.tren;
-                        initChart();
-                    }
+                    if (el('stat-petani')) el('stat-petani').textContent = (s.total_petani ?? 0).toLocaleString('id-ID');
+                    if (el('stat-laporan')) el('stat-laporan').textContent = (s.total_laporan ?? 0).toLocaleString('id-ID');
+                    if (el('stat-harga')) el('stat-harga').textContent = 'Rp ' + Math.round(s.harga_rata || 0).toLocaleString('id-ID');
+                    if (el('stat-satuan') && s.satuan_periode) el('stat-satuan').textContent = '/' + s.satuan_periode;
+                    trenData = data.tren || [];
+                    initChart();
                 }
             })
             .catch(() => {});

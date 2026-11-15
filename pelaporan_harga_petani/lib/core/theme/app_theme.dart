@@ -17,14 +17,16 @@ class AppColors {
   static const Color grey200 = Color(0xFFEEEEEE);
   static const Color grey300 = Color(0xFFE0E0E0);
   static const Color grey400 = Color(0xFFBDBDBD);
-  static const Color grey500 = Color(0xFF9E9E9E);
-  static const Color grey600 = Color(0xFF757575);
+  static const Color grey500 = Color(0xFF757575);
+  static const Color grey600 = Color(0xFF616161);
 
-  // Status colors
-  static const Color success = Color(0xFF4CAF50);
-  static const Color error = Color(0xFFF44336);
-  static const Color warning = Color(0xFFFFC107);
-  static const Color info = Color(0xFF2196F3);
+  // Status colors (WCAG AA >= 4.5:1)
+  static const Color success = Color(0xFF1B5E20);
+  static const Color error = Color(0xFFC62828);
+  static const Color warning = Color(0xFFB45309);
+  static const Color warningSurface = Color(0xFFFFF3CD);
+  static const Color warningInk = Color(0xFF5D4037);
+  static const Color info = Color(0xFF0277BD);
 
   // Background
   static const Color background = Color(0xFFFAFAFA);
@@ -77,7 +79,7 @@ class AppTextStyles {
   static const bodySmall = TextStyle(
     fontSize: 12,
     fontWeight: FontWeight.w400,
-    color: Color(0xFF999999),
+    color: Color(0xFF616161),
   );
 
   static const labelLarge = TextStyle(

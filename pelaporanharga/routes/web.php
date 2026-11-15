@@ -1,8 +1,6 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Http\Request;
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\LaporanAdminController;
 use App\Http\Controllers\Admin\UserAdminController;
@@ -16,7 +14,6 @@ use App\Http\Controllers\PublicController;
 
 // Public routes
 Route::get('/', [PublicController::class, 'index'])->name('public.index');
-Route::get('/api/public/harga-terkini', [PublicController::class, 'apiHargaTerkini'])->name('api.public.harga-terkini');
 
 // Admin routes (web interface)
 Route::middleware(['auth:web', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
@@ -37,8 +34,10 @@ Route::middleware(['auth:web', 'role:admin'])->prefix('admin')->name('admin.')->
         Route::post('/petani/{user}/block', [UserAdminController::class, 'block'])->name('petani.block');
     });
 
-    Route::resource('wilayah', WilayahController::class)->except(['show']);
-    Route::resource('komoditas', KomoditasController::class)->except(['show']);
+    Route::resource('wilayah', WilayahController::class)->except(['show', 'create', 'edit']);
+    Route::resource('komoditas', KomoditasController::class)
+        ->parameters(['komoditas' => 'komoditas'])
+        ->except(['show', 'create', 'edit']);
     Route::prefix('supplier')->name('supplier.')->group(function () {
         Route::get('/', [SupplierController::class, 'index'])->name('index');
         Route::post('/', [SupplierController::class, 'store'])->name('store');
@@ -51,6 +50,7 @@ Route::middleware(['auth:web', 'role:admin'])->prefix('admin')->name('admin.')->
         Route::delete('/{supplier}', [SupplierController::class, 'destroy'])->name('destroy');
     });
     Route::get('/penyetoran', [PenyetoranAdminController::class, 'index'])->name('penyetoran.index');
+    Route::patch('/penyetoran/{penyetoran}/status', [PenyetoranAdminController::class, 'updateStatus'])->name('penyetoran.update-status');
     Route::get('/broadcast', [BroadcastController::class, 'index'])->name('broadcast.index');
     Route::get('/broadcast/create', [BroadcastController::class, 'create'])->name('broadcast.create');
     Route::post('/broadcast', [BroadcastController::class, 'store'])->name('broadcast.store');
@@ -58,45 +58,11 @@ Route::middleware(['auth:web', 'role:admin'])->prefix('admin')->name('admin.')->
     Route::get('/statistik-live', [StatistikController::class, 'apiLive'])->name('statistik.api');
 });
 
-// Login Admin - route terpisah untuk menghindari konflik
-Route::get('/panel/login', function () {
-    return view('admin.auth.login');
-})->name('admin.login')->middleware('guest');
+// Login Admin berbasis controller agar kompatibel dengan php artisan route:cache
+Route::get('/panel/login', [AdminController::class, 'showLoginForm'])->name('admin.login')->middleware('guest');
+Route::post('/panel/login', [AdminController::class, 'login'])->name('admin.login.post')->middleware(['guest', 'throttle:login']);
 
-Route::post('/panel/login', function (Request $request) {
-    $credentials = $request->validate([
-        'email' => 'required|email',
-        'password' => 'required',
-    ]);
+Route::redirect('/login', '/panel/login')->name('login');
+Route::redirect('/admin/login', '/panel/login');
 
-    if (Auth::attempt($credentials)) {
-        $user = Auth::user();
-        if ($user->role !== 'admin') {
-            Auth::logout();
-            return back()->withErrors([
-                'email' => 'Hanya admin yang dapat login di sini.',
-            ]);
-        }
-        $request->session()->regenerate();
-        return redirect()->intended(route('admin.dashboard'));
-    }
-
-    return back()->withErrors([
-        'email' => 'Email atau password salah.',
-    ])->withInput($request->only('email'));
-})->name('admin.login.post')->middleware('guest');
-
-// Redirect /login dan /admin/login ke panel login
-Route::get('/login', function () {
-    return redirect()->to('/panel/login');
-})->name('login');
-Route::get('/admin/login', function () {
-    return redirect()->to('/panel/login');
-});
-
-Route::post('/logout', function (Request $request) {
-    Auth::logout();
-    $request->session()->invalidate();
-    $request->session()->regenerateToken();
-    return redirect('/');
-})->name('logout');
+Route::post('/logout', [AdminController::class, 'logout'])->name('logout');

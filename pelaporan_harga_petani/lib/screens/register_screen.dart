@@ -57,11 +57,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
 
       if (success && mounted) {
-        showSuccessSnackBar(
-          context,
-          'Pendaftaran berhasil! Silakan tunggu persetujuan admin.',
+        await showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.check_circle, color: AppColors.success),
+                SizedBox(width: AppSpacing.sm),
+                Expanded(child: Text('Pendaftaran Berhasil')),
+              ],
+            ),
+            content: const Text(
+              'Akun Anda telah terdaftar dan sedang menunggu persetujuan admin sebelum dapat masuk.',
+            ),
+            actions: [
+              FilledButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
+                child: const Text('Mengerti'),
+              ),
+            ],
+          ),
         );
-        Navigator.of(context).pop();
+        if (mounted) {
+          Navigator.of(context).pop();
+        }
       } else if (!success && mounted) {
         showErrorSnackBar(
           context,
@@ -144,7 +165,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                 // Phone Field
                 CustomTextField(
-                  label: 'Nomor Telepon',
+                  label: 'Nomor Telepon (Opsional)',
                   hint: '08xxxxxxxxxx',
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,

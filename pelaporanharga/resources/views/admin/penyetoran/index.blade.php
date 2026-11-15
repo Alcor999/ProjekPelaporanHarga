@@ -61,6 +61,7 @@
                         <th>Jumlah</th>
                         <th>Total</th>
                         <th>Status</th>
+                        <th width="180">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -76,13 +77,37 @@
                         <td>{{ number_format($p->jumlah, 0) }} {{ $p->satuan }}</td>
                         <td class="fw-bold text-success">Rp {{ number_format($p->total_nilai, 0, ',', '.') }}</td>
                         <td>
-                            <span class="badge {{ $p->status=='completed' ? 'bg-success' : ($p->status=='pending' ? 'bg-warning' : 'bg-secondary') }}">
-                                {{ ucfirst($p->status) }}
+                            <span class="badge {{ $p->status=='completed' ? 'bg-success' : ($p->status=='pending' ? 'bg-warning' : 'bg-danger') }}">
+                                {{ $p->status === 'completed' ? 'Selesai' : ($p->status === 'pending' ? 'Menunggu' : 'Dibatalkan') }}
                             </span>
+                        </td>
+                        <td>
+                            @if($p->status === 'pending')
+                            <div class="d-flex gap-1 flex-wrap">
+                                <form method="POST" action="{{ route('admin.penyetoran.update-status', $p) }}" onsubmit="return confirm('Tandai penyetoran ini selesai?');">
+                                    @csrf
+                                    @method('PATCH')
+                                    <input type="hidden" name="status" value="completed">
+                                    <button type="submit" class="btn btn-sm btn-success" title="Tandai Selesai">
+                                        <i class="fas fa-check me-1"></i>Selesai
+                                    </button>
+                                </form>
+                                <form method="POST" action="{{ route('admin.penyetoran.update-status', $p) }}" onsubmit="return confirm('Batalkan penyetoran ini?');">
+                                    @csrf
+                                    @method('PATCH')
+                                    <input type="hidden" name="status" value="cancelled">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Batalkan Penyetoran">
+                                        <i class="fas fa-times me-1"></i>Batal
+                                    </button>
+                                </form>
+                            </div>
+                            @else
+                            <span class="text-muted small">Selesai diproses</span>
+                            @endif
                         </td>
                     </tr>
                     @empty
-                    <tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-hand-holding-usd fa-2x mb-2 d-block"></i>Belum ada data penyetoran</td></tr>
+                    <tr><td colspan="8" class="text-center text-muted py-4"><i class="fas fa-hand-holding-usd fa-2x mb-2 d-block"></i>Belum ada data penyetoran</td></tr>
                     @endforelse
                 </tbody>
             </table>

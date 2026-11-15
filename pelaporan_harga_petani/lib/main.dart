@@ -52,31 +52,46 @@ void main() async {
 }
 
 class MyApp extends StatefulWidget {
-  const MyApp({super.key});
+  final bool skipInit;
+
+  const MyApp({super.key, this.skipInit = false});
 
   @override
   State<MyApp> createState() => _MyAppState();
 }
 
 class _MyAppState extends State<MyApp> {
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+
   @override
   void initState() {
     super.initState();
-    _initializeApp();
-  }
-
-  Future<void> _initializeApp() async {
     final authProvider = context.read<AuthProvider>();
-    await authProvider.init();
+    authProvider.onSessionExpired = () {
+      _navigatorKey.currentState?.popUntil((route) => route.isFirst);
+    };
+    if (!widget.skipInit) {
+      Future.microtask(() {
+        if (mounted) {
+          authProvider.init();
+        }
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Pelaporan Harga Padi',
+      navigatorKey: _navigatorKey,
+      title: 'Lapor Harga Panen',
       theme: ThemeData(
         useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: AppColors.primary,
+          primary: AppColors.primary,
+          error: AppColors.error,
+          surface: AppColors.surface,
+        ),
         appBarTheme: const AppBarTheme(centerTitle: true, elevation: 0),
         inputDecorationTheme: InputDecorationTheme(
           contentPadding: const EdgeInsets.symmetric(
@@ -90,11 +105,13 @@ class _MyAppState extends State<MyApp> {
       ),
       home: Consumer<AuthProvider>(
         builder: (context, authProvider, _) {
+          if (authProvider.isInitializing) {
+            return const SplashScreen();
+          }
           if (authProvider.isAuthenticated) {
             return const DashboardScreen();
-          } else {
-            return const LoginScreen();
           }
+          return const LoginScreen();
         },
       ),
       routes: {

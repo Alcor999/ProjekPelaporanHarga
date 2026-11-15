@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
@@ -29,23 +29,41 @@ class AuthController extends Controller
             ]);
         }
 
-        if ($user->status !== 'active') {
-            throw ValidationException::withMessages([
-                'email' => ['Akun Anda belum aktif. Silakan hubungi admin.'],
-            ]);
+        if ($user->role !== 'petani') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Akun ini tidak memiliki akses ke aplikasi petani.',
+            ], 403);
         }
 
-        // Delete existing tokens
-        $user->tokens()->delete();
+        $result = DB::transaction(function () use ($user) {
+            $lockedUser = User::whereKey($user->id)->lockForUpdate()->firstOrFail();
 
-        // Create new token
-        $token = $user->createToken('api-token')->plainTextToken;
+            if ($lockedUser->status === 'pending') {
+                throw ValidationException::withMessages([
+                    'email' => ['Akun Anda masih menunggu persetujuan admin.'],
+                ]);
+            }
+
+            if ($lockedUser->status === 'blocked' || !$lockedUser->isActive()) {
+                throw ValidationException::withMessages([
+                    'email' => ['Akun Anda telah diblokir atau dinonaktifkan. Silakan hubungi admin.'],
+                ]);
+            }
+
+            $lockedUser->tokens()->delete();
+            $token = $lockedUser->createToken('api-token')->plainTextToken;
+
+            return [$lockedUser, $token];
+        });
+
+        [$activeUser, $token] = $result;
 
         return response()->json([
             'success' => true,
             'message' => 'Login berhasil',
             'data' => [
-                'user' => $user,
+                'user' => $activeUser,
                 'token' => $token,
                 'token_type' => 'Bearer',
             ]
@@ -57,7 +75,7 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
+        $request->user()?->currentAccessToken()?->delete();
 
         return response()->json([
             'success' => true,

@@ -22,6 +22,16 @@
     </div>
 </div>
 
+@if($errors->any())
+<div class="alert alert-danger">
+    <ul class="mb-0">
+        @foreach($errors->all() as $error)
+        <li>{{ $error }}</li>
+        @endforeach
+    </ul>
+</div>
+@endif
+
 <div class="row">
     <div class="col-lg-4 mb-4">
         <div class="card shadow-sm border-0 h-100" style="transition: transform .2s, box-shadow .2s;">
@@ -36,10 +46,14 @@
                 @if($supplier->description)
                 <p><strong>Deskripsi:</strong><br>{{ $supplier->description }}</p>
                 @endif
+                @php
+                    $avgSupplierRating = $supplier->ratings->avg('rating') ?? 0;
+                    $ratingsTotal = $supplier->ratings->count();
+                @endphp
                 <div class="d-flex align-items-center gap-2 mt-3">
                     <span class="text-warning"><i class="fas fa-star"></i></span>
-                    <strong>{{ number_format($supplier->avgRating(), 1) }}</strong>
-                    <span class="text-muted">({{ $supplier->ratings()->count() }} ulasan)</span>
+                    <strong>{{ number_format($avgSupplierRating, 1) }}</strong>
+                    <span class="text-muted">({{ $ratingsTotal }} ulasan)</span>
                 </div>
             </div>
         </div>
@@ -273,7 +287,7 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Harga per Satuan (Rp) *</label>
-                        <input type="number" name="harga_per_satuan" class="form-control" min="0" step="0.01" required placeholder="0">
+                        <input type="number" name="harga_per_satuan" class="form-control" min="1" step="0.01" required placeholder="0">
                     </div>
                     <div class="mb-0">
                         <label class="form-label">Satuan</label>

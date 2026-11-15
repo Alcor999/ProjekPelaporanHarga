@@ -16,6 +16,7 @@ return new class extends Migration
             $table->tinyInteger('rating'); // 1-5
             $table->text('ulasan')->nullable();
             $table->timestamps();
+            $table->unique('penyetoran_id');
         });
     }
 

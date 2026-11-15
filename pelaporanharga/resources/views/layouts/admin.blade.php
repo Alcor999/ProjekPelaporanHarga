@@ -21,6 +21,28 @@
         .modal-header { padding: 1rem 1.5rem; }
         .modal-body { padding: 1.5rem; }
         .modal-footer { padding: 1rem 1.5rem; }
+        /* Override kontras WCAG AA (>= 4.5:1) untuk status Bootstrap */
+        .badge.bg-warning,
+        .badge.bg-warning.text-dark,
+        .card.bg-warning {
+            background-color: #FFF3CD !important;
+            color: #5D4037 !important;
+        }
+        .card.bg-warning .card-title,
+        .card.bg-warning small,
+        .card.bg-warning i,
+        .card.bg-warning h2,
+        .card.bg-warning h4 {
+            color: #5D4037 !important;
+        }
+        .badge.bg-info,
+        .card.bg-info {
+            background-color: #087990 !important;
+            color: #FFFFFF !important;
+        }
+        .text-warning {
+            color: #B45309 !important;
+        }
     </style>
     @stack('styles')
 </head>

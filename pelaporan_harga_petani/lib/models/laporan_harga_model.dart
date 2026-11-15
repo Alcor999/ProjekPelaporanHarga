@@ -45,11 +45,11 @@ class LaporanHarga {
       komoditasId: json['komoditas_id'] ?? 0,
       harga: (json['harga'] is String) ? double.parse(json['harga']) : (json['harga'] ?? 0.0).toDouble(),
       satuan: json['satuan'] ?? 'kg',
-      tanggalPanen: json['tanggal_panen'] != null ? DateTime.parse(json['tanggal_panen']) : DateTime.now(),
-      tanggalLaporan: json['tanggal_laporan'] != null ? DateTime.parse(json['tanggal_laporan']) : null,
+      tanggalPanen: json['tanggal_panen'] != null ? DateTime.parse(json['tanggal_panen']).toLocal() : DateTime.now(),
+      tanggalLaporan: json['tanggal_laporan'] != null ? DateTime.parse(json['tanggal_laporan']).toLocal() : null,
       catatan: json['catatan'],
       status: json['status'] ?? 'pending',
-      createdAt: json['created_at'] != null ? DateTime.parse(json['created_at']) : null,
+      createdAt: json['created_at'] != null ? DateTime.parse(json['created_at']).toLocal() : null,
       rejectionReason: json['rejection_reason'],
       fotoPath: json['foto_path'],
       wilayah: json['wilayah'],
@@ -57,8 +57,8 @@ class LaporanHarga {
     );
   }
 
-  Map<String, dynamic> toJson({String? fotoBase64}) {
-    final m = {
+  Map<String, dynamic> toJson({String? fotoBase64, bool removeFoto = false}) {
+    final m = <String, dynamic>{
       'user_id': userId,
       'wilayah_id': wilayahId,
       'komoditas_id': komoditasId,
@@ -68,10 +68,12 @@ class LaporanHarga {
       'catatan': catatan,
     };
     if (fotoBase64 != null && fotoBase64.isNotEmpty) m['foto'] = fotoBase64;
+    if (removeFoto) m['remove_foto'] = true;
     return m;
   }
 
-  String get formattedHarga => 'Rp${harga.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}/$satuan';
+  String get formattedHarga =>
+      'Rp ${NumberFormat('#,##0', 'id_ID').format(harga)}/$satuan';
 
   String get formattedTanggalPanen => DateFormat('dd MMMM yyyy', 'id_ID').format(tanggalPanen);
 
@@ -100,6 +102,8 @@ class LaporanHarga {
     String? catatan,
     String? status,
     DateTime? createdAt,
+    String? rejectionReason,
+    String? fotoPath,
     Map<String, dynamic>? wilayah,
     Map<String, dynamic>? komoditas,
   }) {
@@ -115,6 +119,8 @@ class LaporanHarga {
       catatan: catatan ?? this.catatan,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
+      rejectionReason: rejectionReason ?? this.rejectionReason,
+      fotoPath: fotoPath ?? this.fotoPath,
       wilayah: wilayah ?? this.wilayah,
       komoditas: komoditas ?? this.komoditas,
     );

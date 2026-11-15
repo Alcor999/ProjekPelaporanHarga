@@ -82,7 +82,11 @@ class LaporanAdminController extends Controller
             return redirect()->back()->with('error', 'Laporan sudah diproses sebelumnya');
         }
 
-        $reason = $request->input('rejection_reason', '');
+        $request->validate([
+            'rejection_reason' => 'required|string|max:500',
+        ]);
+
+        $reason = (string) $request->input('rejection_reason');
         $laporan->update(['status' => 'rejected', 'rejection_reason' => $reason]);
         NotificationService::notifyLaporanRejected($laporan, $reason);
 
@@ -107,14 +111,15 @@ class LaporanAdminController extends Controller
     public function update(Request $request, LaporanHarga $laporan)
     {
         $request->validate([
-            'harga' => 'required|numeric|min:0',
+            'harga' => 'required|numeric|gt:0|max:999999999999.99',
             'satuan' => 'required|string|max:10',
             'tanggal_panen' => 'required|date|before_or_equal:today',
             'catatan' => 'nullable|string|max:500',
             'status' => 'required|in:pending,approved,rejected',
-            'rejection_reason' => 'nullable|string|max:500',
+            'rejection_reason' => 'required_if:status,rejected|nullable|string|max:500',
         ]);
 
+        $previousStatus = $laporan->status;
         $data = $request->only(['harga', 'satuan', 'tanggal_panen', 'catatan', 'status']);
         if ($request->status === 'rejected') {
             $data['rejection_reason'] = $request->rejection_reason;
@@ -123,6 +128,15 @@ class LaporanAdminController extends Controller
         }
 
         $laporan->update($data);
+
+        if ($previousStatus !== $laporan->status) {
+            if ($laporan->status === 'approved') {
+                NotificationService::notifyLaporanApproved($laporan);
+            } elseif ($laporan->status === 'rejected') {
+                NotificationService::notifyLaporanRejected($laporan, (string) $laporan->rejection_reason);
+            }
+        }
+
         return redirect()->route('admin.laporan.index')->with('success', 'Laporan berhasil diupdate');
     }
 }

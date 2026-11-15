@@ -49,7 +49,15 @@
                             @endif
                         </td>
                         <td>
-                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="editWilayah({{ json_encode($w) }})" title="Edit">
+                            <button type="button"
+                                    class="btn btn-sm btn-outline-primary btn-edit-wilayah"
+                                    data-update-url="{{ route('admin.wilayah.update', $w) }}"
+                                    data-provinsi="{{ $w->provinsi }}"
+                                    data-kabupaten="{{ $w->kabupaten }}"
+                                    data-kecamatan="{{ $w->kecamatan }}"
+                                    data-desa="{{ $w->desa ?? '' }}"
+                                    data-active="{{ $w->is_active ? '1' : '0' }}"
+                                    title="Edit">
                                 <i class="fas fa-edit"></i>
                             </button>
                             <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteWilayahModal{{ $w->id }}" title="Hapus">
@@ -104,29 +112,50 @@
             debounceTimer = setTimeout(function() { form.submit(); }, 400);
         });
     }
+
+    const modalEl = document.getElementById('createModal');
+    const formEl = document.getElementById('wilayahForm');
+    const storeUrl = @json(route('admin.wilayah.store'));
+
+    function setModalState(title, actionUrl, method) {
+        document.getElementById('formTitle').textContent = title;
+        formEl.action = actionUrl;
+        formEl.querySelector('input[name="_method"]').value = method;
+        formEl.querySelector('input[name="_form_action"]').value = actionUrl;
+        formEl.querySelector('input[name="_form_method"]').value = method;
+        formEl.querySelector('input[name="_modal_title"]').value = title;
+    }
+
+    function openCreateWilayah() {
+        formEl.reset();
+        setModalState('Tambah Wilayah', storeUrl, 'POST');
+        formEl.querySelector('[name="is_active"]').checked = true;
+    }
+
+    document.querySelectorAll('.btn-edit-wilayah').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            setModalState('Edit Wilayah', btn.dataset.updateUrl, 'PUT');
+            formEl.querySelector('[name="provinsi"]').value = btn.dataset.provinsi || '';
+            formEl.querySelector('[name="kabupaten"]').value = btn.dataset.kabupaten || '';
+            formEl.querySelector('[name="kecamatan"]').value = btn.dataset.kecamatan || '';
+            formEl.querySelector('[name="desa"]').value = btn.dataset.desa || '';
+            formEl.querySelector('[name="is_active"]').checked = btn.dataset.active === '1';
+            bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        });
+    });
+
+    const addTrigger = document.querySelector('[data-bs-target="#createModal"]');
+    if (addTrigger) {
+        addTrigger.addEventListener('click', openCreateWilayah);
+    }
+
+    modalEl.addEventListener('hidden.bs.modal', function() {
+        openCreateWilayah();
+    });
+
+    @if($errors->any())
+    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    @endif
 })();
-function editWilayah(w) {
-    document.getElementById('formTitle').textContent = 'Edit Wilayah';
-    document.getElementById('wilayahForm').action = '/admin/wilayah/' + w.id;
-    document.getElementById('wilayahForm').querySelector('input[name="_method"]').value = 'PUT';
-    document.querySelector('[name="kecamatan"]').value = w.kecamatan || '';
-    document.querySelector('[name="desa"]').value = w.desa || '';
-    document.querySelector('[name="kabupaten"]').value = w.kabupaten || '';
-    document.querySelector('[name="provinsi"]').value = w.provinsi || '';
-    document.querySelector('[name="is_active"]').checked = w.is_active;
-    new bootstrap.Modal(document.getElementById('createModal')).show();
-}
-document.getElementById('createModal').addEventListener('hidden.bs.modal', function() {
-    document.getElementById('formTitle').textContent = 'Tambah Wilayah';
-    document.getElementById('wilayahForm').action = '{{ route("admin.wilayah.store") }}';
-    document.getElementById('wilayahForm').querySelector('input[name="_method"]').value = 'POST';
-    document.getElementById('wilayahForm').reset();
-});
-document.querySelector('[data-bs-target="#createModal"]').addEventListener('click', function() {
-    document.getElementById('formTitle').textContent = 'Tambah Wilayah';
-    document.getElementById('wilayahForm').action = '{{ route("admin.wilayah.store") }}';
-    document.getElementById('wilayahForm').querySelector('input[name="_method"]').value = 'POST';
-    document.getElementById('wilayahForm').reset();
-});
 </script>
 @endpush

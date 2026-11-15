@@ -1,13 +1,13 @@
 class ApiConstants {
-  // Backend API base URL
-  // Sesuaikan dengan URL backend Laravel Anda
-  // For Android Emulator: http://10.0.2.2:8000/api
-  // For iPhone Simulator: http://localhost:8000/api
-  // For physical device on LAN: http://192.168.x.x:8000/api
-  // IMPORTANT: Untuk physical device, gunakan IP lokal komputer Anda, bukan localhost!
-  // Pastikan Laravel berjalan dengan: php artisan serve --host=0.0.0.0 --port=8000
-  static const String baseUrl = 'http://192.168.100.221:8000/api';
-  static String get storageUrl => baseUrl.replaceAll('/api', '');
+  // Backend API base URL (override via --dart-define=API_BASE_URL=https://subdomain.domain.com/api)
+  static const String baseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'http://10.0.2.2:8000/api',
+  );
+
+  static String get storageUrl => baseUrl.endsWith('/api')
+      ? baseUrl.substring(0, baseUrl.length - 4)
+      : baseUrl;
 
   // Auth endpoints
   static const String login = '/login';

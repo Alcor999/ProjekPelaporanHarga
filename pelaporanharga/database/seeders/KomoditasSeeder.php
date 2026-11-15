@@ -29,7 +29,17 @@ class KomoditasSeeder extends Seeder
         ];
 
         foreach ($komoditasData as $data) {
-            Komoditas::create($data);
+            Komoditas::firstOrCreate(
+                [
+                    'name' => $data['name'],
+                    'grade' => $data['grade'],
+                ],
+                [
+                    'kategori' => $data['kategori'],
+                    'description' => $data['description'],
+                    'is_active' => true,
+                ]
+            );
         }
     }
 }

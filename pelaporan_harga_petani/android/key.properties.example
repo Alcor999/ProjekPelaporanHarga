@@ -1,0 +1,4 @@
+storePassword=GANTI_DENGAN_PASSWORD_KEYSTORE
+keyPassword=GANTI_DENGAN_PASSWORD_KEY
+keyAlias=laporhargakey
+storeFile=../lapor-harga-release.jks

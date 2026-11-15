@@ -24,11 +24,6 @@ class WilayahController extends Controller
         return view('admin.wilayah.index', compact('wilayah'));
     }
 
-    public function create()
-    {
-        return view('admin.wilayah.form', ['wilayah' => new Wilayah()]);
-    }
-
     public function store(Request $request)
     {
         $request->validate([
@@ -41,11 +36,6 @@ class WilayahController extends Controller
         $data['is_active'] = $request->has('is_active');
         Wilayah::create($data);
         return redirect()->route('admin.wilayah.index')->with('success', 'Wilayah berhasil ditambahkan');
-    }
-
-    public function edit(Wilayah $wilayah)
-    {
-        return view('admin.wilayah.form', compact('wilayah'));
     }
 
     public function update(Request $request, Wilayah $wilayah)
@@ -65,8 +55,8 @@ class WilayahController extends Controller
 
     public function destroy(Wilayah $wilayah)
     {
-        if ($wilayah->laporanHarga()->exists()) {
-            return redirect()->back()->with('error', 'Wilayah tidak dapat dihapus karena memiliki laporan');
+        if ($wilayah->laporanHarga()->exists() || $wilayah->suppliers()->exists()) {
+            return redirect()->back()->with('error', 'Wilayah tidak dapat dihapus karena masih digunakan oleh laporan atau supplier.');
         }
         $wilayah->delete();
         return redirect()->route('admin.wilayah.index')->with('success', 'Wilayah berhasil dihapus');

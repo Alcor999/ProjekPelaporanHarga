@@ -6,7 +6,7 @@ import '../models/notification_model.dart';
 import '../providers/notification_provider.dart';
 
 class NotificationsScreen extends StatefulWidget {
-  const NotificationsScreen({Key? key}) : super(key: key);
+  const NotificationsScreen({super.key});
 
   @override
   State<NotificationsScreen> createState() => _NotificationsScreenState();
@@ -16,7 +16,33 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() => context.read<NotificationProvider>().loadNotifications());
+    Future.microtask(() {
+      if (mounted) context.read<NotificationProvider>().loadNotifications();
+    });
+  }
+
+  Future<void> _handleMarkAll(NotificationProvider np) async {
+    final ok = await np.markAllAsRead();
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(np.errorMessage ?? 'Gagal menandai notifikasi'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleMarkOne(NotificationProvider np, int id) async {
+    final ok = await np.markAsRead(id);
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(np.errorMessage ?? 'Gagal menandai notifikasi'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
   }
 
   @override
@@ -38,9 +64,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           Consumer<NotificationProvider>(
             builder: (context, np, _) {
               if (np.unreadCount == 0) return const SizedBox();
-              return TextButton(
-                onPressed: () => np.markAllAsRead(),
-                child: const Text('Tandai semua dibaca', style: TextStyle(color: AppColors.white)),
+              return IconButton(
+                tooltip: 'Tandai semua dibaca',
+                icon: const Icon(Icons.done_all, color: AppColors.white),
+                onPressed: () => _handleMarkAll(np),
               );
             },
           ),
@@ -51,15 +78,48 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           if (np.isLoading && np.notifications.isEmpty) {
             return const Center(child: CircularProgressIndicator(color: AppColors.primary));
           }
-          if (np.notifications.isEmpty) {
+          if (np.errorMessage != null && np.notifications.isEmpty) {
             return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.notifications_none, size: 64, color: AppColors.grey400),
-                  const SizedBox(height: 16),
-                  const Text('Belum ada notifikasi'),
-                ],
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                    const SizedBox(height: 12),
+                    Text(np.errorMessage!, textAlign: TextAlign.center, style: AppTextStyles.bodyMedium),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: () => np.loadNotifications(),
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Coba Lagi'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+          if (np.notifications.isEmpty) {
+            return RefreshIndicator(
+              onRefresh: () => np.loadNotifications(),
+              color: AppColors.primary,
+              child: LayoutBuilder(
+                builder: (context, constraints) => SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: SizedBox(
+                    height: constraints.maxHeight,
+                    child: const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.notifications_none, size: 64, color: AppColors.grey500),
+                          SizedBox(height: 16),
+                          Text('Belum ada notifikasi'),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               ),
             );
           }
@@ -73,7 +133,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 final n = np.notifications[i];
                 return _NotificationCard(
                   notification: n,
-                  onTap: () => np.markAsRead(n.id),
+                  onTap: () => _handleMarkOne(np, n.id),
                 );
               },
             ),
@@ -129,7 +189,7 @@ class _NotificationCard extends StatelessWidget {
                   padding: const EdgeInsets.only(top: AppSpacing.sm),
                   child: Text(
                     DateFormat('dd MMM yyyy, HH:mm', 'id_ID').format(notification.createdAt!),
-                    style: AppTextStyles.bodySmall.copyWith(color: AppColors.grey500),
+                    style: AppTextStyles.bodySmall.copyWith(color: AppColors.grey600),
                   ),
                 ),
             ],

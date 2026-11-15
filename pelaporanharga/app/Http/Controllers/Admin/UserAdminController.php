@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class UserAdminController extends Controller
 {
@@ -60,7 +61,10 @@ class UserAdminController extends Controller
             return redirect()->back()->with('error', 'Hanya akun petani yang dapat diblokir.');
         }
 
-        $user->update(['status' => 'blocked']);
+        DB::transaction(function () use ($user) {
+            $user->update(['status' => 'blocked']);
+            $user->tokens()->delete();
+        });
 
         return redirect()->back()->with('success', 'Akun petani berhasil dinonaktifkan.');
     }

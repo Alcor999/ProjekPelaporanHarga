@@ -30,8 +30,8 @@
         .harga-naik { color: #198754; }
         .harga-turun { color: #dc3545; }
         .harga-sama { color: #6c757d; }
-        .badge-termurah { background: linear-gradient(135deg, #198754, #20c997); }
-        .badge-termahal { background: linear-gradient(135deg, #dc3545, #fd7e14); }
+        .badge-termurah { background-color: #157347; color: #ffffff; }
+        .badge-termahal { background-color: #b02a37; color: #ffffff; }
         .price-compare-bar {
             height: 6px;
             border-radius: 3px;
@@ -52,13 +52,6 @@
         #harga-container {
             transition: opacity 0.2s ease;
         }
-        .auto-refresh {
-            animation: pulse 2s infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
         .stat-badge {
             font-size: 0.75rem;
             padding: 0.35em 0.65em;
@@ -74,7 +67,7 @@
                     <h1 class="mb-0">
                         <i class="fas fa-chart-line"></i> Harga Komoditas Terkini
                     </h1>
-                    <p class="mb-0 mt-2">Perbandingan harga komoditas dari berbagai wilayah — Data terupdate otomatis</p>
+                    <p class="mb-0 mt-2">Perbandingan harga komoditas dari berbagai wilayah - Data terupdate otomatis</p>
                 </div>
                 <div class="col-md-4 text-end">
                     <div class="d-flex align-items-center justify-content-end gap-3">
@@ -82,7 +75,7 @@
                             <i class="fas fa-clock me-2"></i>
                             <small id="last-update">Terakhir update: {{ now()->format('d/m/Y H:i') }}</small>
                         </div>
-                        <a href="/panel/login" class="btn btn-light btn-sm" target="_self">
+                        <a href="{{ route('admin.login') }}" class="btn btn-light btn-sm" target="_self">
                             <i class="fas fa-sign-in-alt me-1"></i> Login Admin
                         </a>
                     </div>
@@ -135,8 +128,8 @@
         <div class="alert alert-info mb-4 d-flex align-items-center shadow-sm border-0">
             <i class="fas fa-info-circle fa-lg me-3"></i>
             <div>
-                <strong>Harga Terbaru</strong> — Menampilkan harga terbaru yang sudah diverifikasi admin dari semua periode. Auto refresh setiap 15 detik.
-                <span class="auto-refresh ms-2"><i class="fas fa-sync-alt"></i></span>
+                <strong>Harga Terbaru:</strong> Menampilkan harga terbaru yang sudah diverifikasi admin dari semua periode. Auto refresh setiap 15 detik.
+                <span class="ms-2"><i class="fas fa-sync-alt"></i></span>
             </div>
         </div>
 
@@ -157,11 +150,11 @@
                                     <h5 class="mb-0">
                                         <i class="fas fa-seedling me-2"></i>
                                         {{ $item['komoditas']->name }}
-                                        @if($item['komoditas']->grade)
-                                            <small class="opacity-75">({{ $item['komoditas']->grade }})</small>
+                                        @if($item['komoditas']?->grade)
+                                            <small>({{ $item['komoditas']->grade }})</small>
                                         @endif
                                     </h5>
-                                    <small class="opacity-75">{{ ucfirst($item['komoditas']->kategori ?? 'padi') }}</small>
+                                    <small>{{ ucfirst($item['komoditas']?->kategori ?? 'padi') }} - per {{ $item['satuan'] ?? 'kg' }}</small>
                                 </div>
                                 <div class="d-flex gap-2 flex-wrap">
                                     <span class="badge bg-light text-dark stat-badge">
@@ -207,7 +200,7 @@
                                                 </td>
                                                 <td class="text-end">
                                                     <strong class="fs-5">Rp {{ number_format($wd['harga_terbaru'], 0, ',', '.') }}</strong>
-                                                    <small class="text-muted">/kg</small>
+                                                    <small class="text-muted">/{{ $wd['satuan'] ?? ($item['satuan'] ?? 'kg') }}</small>
                                                 </td>
                                                 <td class="text-center">
                                                     @if($wd['perubahan'] !== null)
@@ -310,6 +303,21 @@
                 });
         }
 
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function formatDateId(dateStr) {
+            if (!dateStr) return '-';
+            const d = new Date(dateStr);
+            return Number.isNaN(d.getTime()) ? escapeHtml(dateStr) : d.toLocaleDateString('id-ID');
+        }
+
         function updateHargaDisplay(hargaData) {
             const container = document.getElementById('harga-container');
 
@@ -328,9 +336,14 @@
 
             hargaData.forEach(item => {
                 const wilayahData = item.wilayah_data || [];
-                const hargaTerendah = item.harga_terendah;
-                const hargaTertinggi = item.harga_tertinggi;
+                const hargaTerendah = Number(item.harga_terendah) || 0;
+                const hargaTertinggi = Number(item.harga_tertinggi) || 0;
                 const range = hargaTertinggi - hargaTerendah;
+                const totalWilayah = Number(item.total_wilayah) || 0;
+                const itemSatuan = escapeHtml(item.satuan || 'kg');
+                const komoditas = item.komoditas || {};
+                const kategoriRaw = komoditas.kategori ? String(komoditas.kategori) : 'padi';
+                const kategoriLabel = escapeHtml(kategoriRaw.charAt(0).toUpperCase() + kategoriRaw.slice(1));
 
                 html += `
                     <div class="card komoditas-card mb-4 shadow">
@@ -339,14 +352,14 @@
                                 <div>
                                     <h5 class="mb-0">
                                         <i class="fas fa-seedling me-2"></i>
-                                        ${item.komoditas.name}
-                                        ${item.komoditas.grade ? `<small class="opacity-75">(${item.komoditas.grade})</small>` : ''}
+                                        ${escapeHtml(komoditas.name || '-')}
+                                        ${komoditas.grade ? `<small>(${escapeHtml(komoditas.grade)})</small>` : ''}
                                     </h5>
-                                    <small class="opacity-75">${item.komoditas.kategori ? item.komoditas.kategori.charAt(0).toUpperCase() + item.komoditas.kategori.slice(1) : 'Padi'}</small>
+                                    <small>${kategoriLabel} - per ${itemSatuan}</small>
                                 </div>
                                 <div class="d-flex gap-2 flex-wrap">
                                     <span class="badge bg-light text-dark stat-badge">
-                                        <i class="fas fa-map me-1"></i> ${item.total_wilayah} wilayah
+                                        <i class="fas fa-map me-1"></i> ${totalWilayah} wilayah
                                     </span>
                                     <span class="badge bg-success stat-badge">
                                         <i class="fas fa-arrow-down me-1"></i> Rp ${new Intl.NumberFormat('id-ID').format(hargaTerendah)}
@@ -371,16 +384,22 @@
                                     </thead>
                                     <tbody>
                                         ${wilayahData.map(wd => {
-                                            const posisi = range > 0 ? ((wd.harga_terbaru - hargaTerendah) / range) * 100 : 50;
-                                            const isTerMurah = wd.harga_terbaru == hargaTerendah && item.total_wilayah > 1;
-                                            const isTerMahal = wd.harga_terbaru == hargaTertinggi && item.total_wilayah > 1;
+                                            const hargaTerbaru = Number(wd.harga_terbaru) || 0;
+                                            const posisi = range > 0 ? Math.min(100, Math.max(0, ((hargaTerbaru - hargaTerendah) / range) * 100)) : 50;
+                                            const isTerMurah = hargaTerbaru === hargaTerendah && totalWilayah > 1;
+                                            const isTerMahal = hargaTerbaru === hargaTertinggi && totalWilayah > 1;
+                                            const wdSatuan = escapeHtml(wd.satuan || item.satuan || 'kg');
+                                            const wilayah = wd.wilayah || {};
+                                            const jumlahLaporan = Number(wd.jumlah_laporan) || 0;
 
                                             let perubahanHtml = '<span class="text-muted">-</span>';
-                                            if (wd.perubahan !== null) {
-                                                if (wd.perubahan > 0) {
-                                                    perubahanHtml = `<span class="harga-naik"><i class="fas fa-arrow-up"></i> +${new Intl.NumberFormat('id-ID').format(wd.perubahan)} <small>(+${wd.perubahan_persen}%)</small></span>`;
-                                                } else if (wd.perubahan < 0) {
-                                                    perubahanHtml = `<span class="harga-turun"><i class="fas fa-arrow-down"></i> ${new Intl.NumberFormat('id-ID').format(wd.perubahan)} <small>(${wd.perubahan_persen}%)</small></span>`;
+                                            if (wd.perubahan !== null && wd.perubahan !== undefined) {
+                                                const perubahan = Number(wd.perubahan) || 0;
+                                                const persen = escapeHtml(wd.perubahan_persen ?? '0');
+                                                if (perubahan > 0) {
+                                                    perubahanHtml = `<span class="harga-naik"><i class="fas fa-arrow-up"></i> +${new Intl.NumberFormat('id-ID').format(perubahan)} <small>(+${persen}%)</small></span>`;
+                                                } else if (perubahan < 0) {
+                                                    perubahanHtml = `<span class="harga-turun"><i class="fas fa-arrow-down"></i> ${new Intl.NumberFormat('id-ID').format(perubahan)} <small>(${persen}%)</small></span>`;
                                                 } else {
                                                     perubahanHtml = '<span class="harga-sama"><i class="fas fa-minus"></i> Sama</span>';
                                                 }
@@ -389,26 +408,26 @@
                                             return `
                                                 <tr class="wilayah-row">
                                                     <td class="ps-3">
-                                                        <strong>${wd.wilayah.kabupaten}</strong>
-                                                        <br><small class="text-muted">${wd.wilayah.kecamatan}</small>
+                                                        <strong>${escapeHtml(wilayah.kabupaten || '-')}</strong>
+                                                        <br><small class="text-muted">${escapeHtml(wilayah.kecamatan || '')}</small>
                                                         ${isTerMurah ? '<span class="badge badge-termurah ms-1"><i class="fas fa-thumbs-up"></i> Termurah</span>' : ''}
                                                         ${isTerMahal ? '<span class="badge badge-termahal ms-1"><i class="fas fa-fire"></i> Termahal</span>' : ''}
                                                     </td>
                                                     <td class="text-end">
-                                                        <strong class="fs-5">Rp ${new Intl.NumberFormat('id-ID').format(wd.harga_terbaru)}</strong>
-                                                        <small class="text-muted">/kg</small>
+                                                        <strong class="fs-5">Rp ${new Intl.NumberFormat('id-ID').format(hargaTerbaru)}</strong>
+                                                        <small class="text-muted">/${wdSatuan}</small>
                                                     </td>
                                                     <td class="text-center">${perubahanHtml}</td>
                                                     <td>
-                                                        ${item.total_wilayah > 1 ? `
+                                                        ${totalWilayah > 1 ? `
                                                             <div class="price-compare-bar">
                                                                 <div class="price-marker" style="left: ${posisi}%"></div>
                                                             </div>
                                                         ` : '<span class="text-muted">-</span>'}
                                                     </td>
                                                     <td class="text-center">
-                                                        <small class="text-muted">${new Date(wd.tanggal_update).toLocaleDateString('id-ID')}</small>
-                                                        <br><small class="badge bg-secondary">${wd.jumlah_laporan} laporan</small>
+                                                        <small class="text-muted">${formatDateId(wd.tanggal_update)}</small>
+                                                        <br><small class="badge bg-secondary">${jumlahLaporan} laporan</small>
                                                     </td>
                                                 </tr>
                                             `;

@@ -47,7 +47,15 @@ class WilayahSeeder extends Seeder
         ];
 
         foreach ($wilayahData as $data) {
-            Wilayah::create($data);
+            Wilayah::firstOrCreate(
+                [
+                    'kecamatan' => $data['kecamatan'],
+                    'desa' => $data['desa'],
+                    'kabupaten' => $data['kabupaten'],
+                    'provinsi' => $data['provinsi'],
+                ],
+                ['is_active' => true]
+            );
         }
     }
 }

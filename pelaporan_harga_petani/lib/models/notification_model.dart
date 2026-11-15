@@ -22,7 +22,9 @@ class NotificationModel {
       title: json['title'] ?? '',
       message: json['message'] ?? '',
       isRead: json['is_read'] ?? false,
-      createdAt: json['created_at'] != null ? DateTime.tryParse(json['created_at']) : null,
+      createdAt: json['created_at'] != null
+          ? DateTime.tryParse(json['created_at'].toString())?.toLocal()
+          : null,
     );
   }
 }

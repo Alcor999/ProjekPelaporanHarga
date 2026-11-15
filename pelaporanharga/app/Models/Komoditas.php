@@ -26,6 +26,16 @@ class Komoditas extends Model
         return $this->hasMany(LaporanHarga::class);
     }
 
+    public function supplierHarga()
+    {
+        return $this->hasMany(SupplierHarga::class);
+    }
+
+    public function penyetoran()
+    {
+        return $this->hasMany(Penyetoran::class);
+    }
+
     /**
      * Scope for active komoditas
      */

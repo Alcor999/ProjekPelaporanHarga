@@ -20,6 +20,7 @@ class _HargaPublikScreenState extends State<HargaPublikScreen> {
   void initState() {
     super.initState();
     Future.microtask(() {
+      if (!mounted) return;
       context.read<LaporanProvider>().initReferenceData();
       context.read<HargaPublikProvider>().loadHargaTerkini();
     });
@@ -60,17 +61,22 @@ class _HargaPublikScreenState extends State<HargaPublikScreen> {
                   children: [
                     Icon(Icons.tune, color: AppColors.primary, size: 20),
                     const SizedBox(width: 8),
-                    Text('Filter & Perbandingan Harga', style: AppTextStyles.labelLarge.copyWith(color: AppColors.primary)),
+                    Expanded(
+                      child: Text(
+                        'Filter & Perbandingan Harga',
+                        style: AppTextStyles.labelLarge.copyWith(color: AppColors.primary),
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Consumer<LaporanProvider>(
                   builder: (context, lp, _) {
-                    if (lp.wilayahList.isEmpty) lp.initReferenceData();
                     return Column(
                       children: [
                         DropdownButtonFormField<int?>(
-                          value: _wilayahId,
+                          isExpanded: true,
+                          value: lp.wilayahList.any((w) => w.id == _wilayahId) ? _wilayahId : null,
                           decoration: InputDecoration(
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -89,7 +95,8 @@ class _HargaPublikScreenState extends State<HargaPublikScreen> {
                         ),
                         const SizedBox(height: 8),
                         DropdownButtonFormField<int?>(
-                          value: _komoditasId,
+                          isExpanded: true,
+                          value: lp.komoditasList.any((k) => k.id == _komoditasId) ? _komoditasId : null,
                           decoration: InputDecoration(
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -120,24 +127,51 @@ class _HargaPublikScreenState extends State<HargaPublikScreen> {
                   return const Center(child: CircularProgressIndicator(color: AppColors.primary));
                 }
                 if (hp.errorMessage != null && hp.hargaTerkini.isEmpty) {
-                  return Center(child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.error_outline, size: 48, color: AppColors.grey500),
-                      const SizedBox(height: 16),
-                      Text(hp.errorMessage ?? 'Error', textAlign: TextAlign.center),
-                    ],
-                  ));
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                          const SizedBox(height: 16),
+                          Text(hp.errorMessage ?? 'Error', textAlign: TextAlign.center),
+                          const SizedBox(height: 16),
+                          ElevatedButton.icon(
+                            onPressed: _applyFilter,
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Coba Lagi'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
                 }
                 if (hp.hargaTerkini.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.inbox, size: 64, color: AppColors.grey400),
-                        const SizedBox(height: 16),
-                        Text('Belum ada data harga yang disetujui', style: AppTextStyles.bodyLarge.copyWith(color: AppColors.grey600)),
-                      ],
+                  return RefreshIndicator(
+                    onRefresh: () => hp.loadHargaTerkini(wilayahId: _wilayahId, komoditasId: _komoditasId),
+                    color: AppColors.primary,
+                    child: LayoutBuilder(
+                      builder: (context, constraints) => SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        child: SizedBox(
+                          height: constraints.maxHeight,
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.inbox, size: 64, color: AppColors.grey500),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Belum ada data harga yang disetujui',
+                                  style: AppTextStyles.bodyLarge.copyWith(color: AppColors.grey600),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
                   );
                 }
@@ -199,12 +233,12 @@ class _HargaPublikScreenState extends State<HargaPublikScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${komoditas['name'] ?? '-'} ${komoditas['grade'] != null ? '(${komoditas['grade']})' : ''}',
+                        '${komoditas['name'] ?? '-'}${komoditas['grade'] != null && komoditas['grade'].toString().isNotEmpty ? ' (${komoditas['grade']})' : ''}',
                         style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.bold, fontSize: 18),
                       ),
                       Text(
-                        komoditas['kategori'] != null ? komoditas['kategori'].toString().toUpperCase() : 'PADI',
-                        style: TextStyle(color: AppColors.white.withValues(alpha: 0.8), fontSize: 12),
+                        '${komoditas['kategori'] != null ? komoditas['kategori'].toString().toUpperCase() : 'PADI'} / ${item['satuan'] ?? 'kg'}',
+                        style: const TextStyle(color: AppColors.white, fontSize: 12),
                       ),
                     ],
                   ),
@@ -225,11 +259,10 @@ class _HargaPublikScreenState extends State<HargaPublikScreen> {
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
             color: AppColors.grey100,
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildSummaryItem('Terendah', hargaTerendah, AppColors.success),
+                Expanded(child: _buildSummaryItem('Terendah', hargaTerendah, AppColors.success)),
                 Container(width: 1, height: 30, color: AppColors.grey300),
-                _buildSummaryItem('Tertinggi', hargaTertinggi, AppColors.error),
+                Expanded(child: _buildSummaryItem('Tertinggi', hargaTertinggi, AppColors.error)),
               ],
             ),
           ),
@@ -241,24 +274,32 @@ class _HargaPublikScreenState extends State<HargaPublikScreen> {
   }
 
   Widget _buildSummaryItem(String label, double value, Color color) {
-    return Column(
-      children: [
-        Text(label, style: AppTextStyles.bodySmall.copyWith(color: AppColors.grey600)),
-        const SizedBox(height: 2),
-        Text(
-          'Rp ${NumberFormat('#,###', 'id_ID').format(value)}',
-          style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 16),
-        ),
-      ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Column(
+        children: [
+          Text(label, style: AppTextStyles.bodySmall.copyWith(color: AppColors.grey600)),
+          const SizedBox(height: 2),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              'Rp ${NumberFormat('#,##0', 'id_ID').format(value)}',
+              style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildWilayahRow(Map<String, dynamic> wd, double hargaTerendah, double hargaTertinggi, double range, int totalWilayah) {
     final wilayah = wd['wilayah'] as Map? ?? {};
     final hargaTerbaru = (wd['harga_terbaru'] as num?)?.toDouble() ?? 0;
+    final satuan = wd['satuan'] as String? ?? 'kg';
     final perubahan = wd['perubahan'] as num?;
     final perubahanPersen = wd['perubahan_persen'] as num?;
     final tanggalUpdate = wd['tanggal_update'] as String?;
+    final parsedTanggal = tanggalUpdate != null ? DateTime.tryParse(tanggalUpdate)?.toLocal() : null;
     final jumlahLaporan = wd['jumlah_laporan'] as int? ?? 0;
 
     final posisi = range > 0 ? ((hargaTerbaru - hargaTerendah) / range) * 100 : 50;
@@ -274,76 +315,89 @@ class _HargaPublikScreenState extends State<HargaPublikScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
+                flex: 3,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        Text(wilayah['kabupaten'] ?? '-', style: AppTextStyles.labelLarge),
-                        if (isTerMurah) ...[
-                          const SizedBox(width: 8),
+                        Text(
+                          wilayah['kabupaten'] ?? '-',
+                          style: AppTextStyles.labelLarge,
+                        ),
+                        if (isTerMurah)
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
-                              gradient: const LinearGradient(colors: [Color(0xFF198754), Color(0xFF20c997)]),
+                              color: AppColors.success,
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: const Text('Termurah', style: TextStyle(color: AppColors.white, fontSize: 10, fontWeight: FontWeight.bold)),
                           ),
-                        ],
-                        if (isTerMahal) ...[
-                          const SizedBox(width: 8),
+                        if (isTerMahal)
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
-                              gradient: const LinearGradient(colors: [Color(0xFFdc3545), Color(0xFFfd7e14)]),
+                              color: AppColors.error,
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: const Text('Termahal', style: TextStyle(color: AppColors.white, fontSize: 10, fontWeight: FontWeight.bold)),
                           ),
-                        ],
                       ],
                     ),
                     Text(wilayah['kecamatan'] ?? '', style: AppTextStyles.bodySmall.copyWith(color: AppColors.grey600)),
                   ],
                 ),
               ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    'Rp ${NumberFormat('#,###', 'id_ID').format(hargaTerbaru)}',
-                    style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold),
-                  ),
-                  if (perubahan != null)
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          perubahan > 0 ? Icons.arrow_upward : (perubahan < 0 ? Icons.arrow_downward : Icons.remove),
-                          size: 14,
-                          color: perubahan > 0 ? AppColors.success : (perubahan < 0 ? AppColors.error : AppColors.grey500),
-                        ),
-                        Text(
-                          perubahan > 0 ? '+${NumberFormat('#,###', 'id_ID').format(perubahan)}' : NumberFormat('#,###', 'id_ID').format(perubahan),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: perubahan > 0 ? AppColors.success : (perubahan < 0 ? AppColors.error : AppColors.grey500),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                flex: 2,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        'Rp ${NumberFormat('#,##0', 'id_ID').format(hargaTerbaru)}/$satuan',
+                        style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    if (perubahan != null)
+                      Wrap(
+                        alignment: WrapAlignment.end,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Icon(
+                            perubahan > 0 ? Icons.arrow_upward : (perubahan < 0 ? Icons.arrow_downward : Icons.remove),
+                            size: 14,
+                            color: perubahan > 0 ? AppColors.success : (perubahan < 0 ? AppColors.error : AppColors.grey600),
                           ),
-                        ),
-                        if (perubahanPersen != null)
                           Text(
-                            ' (${perubahanPersen > 0 ? '+' : ''}${perubahanPersen.toStringAsFixed(1)}%)',
+                            perubahan > 0 ? '+${NumberFormat('#,##0', 'id_ID').format(perubahan)}' : NumberFormat('#,##0', 'id_ID').format(perubahan),
                             style: TextStyle(
-                              fontSize: 10,
-                              color: perubahan > 0 ? AppColors.success : (perubahan < 0 ? AppColors.error : AppColors.grey500),
+                              fontSize: 12,
+                              color: perubahan > 0 ? AppColors.success : (perubahan < 0 ? AppColors.error : AppColors.grey600),
                             ),
                           ),
-                      ],
-                    ),
-                ],
+                          if (perubahanPersen != null)
+                            Text(
+                              ' (${perubahanPersen > 0 ? '+' : ''}${perubahanPersen.toStringAsFixed(1)}%)',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: perubahan > 0 ? AppColors.success : (perubahan < 0 ? AppColors.error : AppColors.grey600),
+                              ),
+                            ),
+                        ],
+                      ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -352,37 +406,49 @@ class _HargaPublikScreenState extends State<HargaPublikScreen> {
             children: [
               if (totalWilayah > 1) ...[
                 Expanded(
-                  child: Container(
-                    height: 6,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(3),
-                      gradient: const LinearGradient(colors: [Color(0xFF198754), Color(0xFFffc107), Color(0xFFdc3545)]),
-                    ),
-                    child: Stack(
-                      children: [
-                        Positioned(
-                          left: posisi.clamp(0, 100) / 100 * (MediaQuery.of(context).size.width - 100),
-                          child: Container(
-                            width: 12,
-                            height: 12,
-                            transform: Matrix4.translationValues(-6, -3, 0),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: AppColors.white, width: 2),
-                              boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final trackWidth = constraints.maxWidth;
+                      final dotLeft = ((posisi.clamp(0, 100) / 100) * (trackWidth - 12))
+                          .clamp(0.0, trackWidth > 12 ? trackWidth - 12 : 0.0);
+                      return SizedBox(
+                        height: 12,
+                        child: Stack(
+                          alignment: Alignment.centerLeft,
+                          children: [
+                            Container(
+                              height: 6,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(3),
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFF198754), Color(0xFFffc107), Color(0xFFdc3545)],
+                                ),
+                              ),
                             ),
-                          ),
+                            Positioned(
+                              left: dotLeft,
+                              child: Container(
+                                width: 12,
+                                height: 12,
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: AppColors.white, width: 2),
+                                  boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)],
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      );
+                    },
                   ),
                 ),
                 const SizedBox(width: 12),
               ],
               Text(
-                tanggalUpdate != null ? DateFormat('dd/MM/yy').format(DateTime.parse(tanggalUpdate)) : '-',
-                style: AppTextStyles.bodySmall.copyWith(color: AppColors.grey500),
+                parsedTanggal != null ? DateFormat('dd/MM/yy').format(parsedTanggal) : '-',
+                style: AppTextStyles.bodySmall.copyWith(color: AppColors.grey600),
               ),
               const SizedBox(width: 8),
               Container(

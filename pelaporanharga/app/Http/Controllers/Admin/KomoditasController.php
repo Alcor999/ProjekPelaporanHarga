@@ -26,11 +26,6 @@ class KomoditasController extends Controller
         return view('admin.komoditas.index', compact('komoditas'));
     }
 
-    public function create()
-    {
-        return view('admin.komoditas.form', ['komoditas' => new Komoditas()]);
-    }
-
     public function store(Request $request)
     {
         $request->validate([
@@ -40,14 +35,9 @@ class KomoditasController extends Controller
             'description' => 'nullable|string',
         ]);
         $data = $request->only(['kategori', 'name', 'grade', 'description']);
-        $data['is_active'] = true;
+        $data['is_active'] = $request->has('is_active');
         Komoditas::create($data);
         return redirect()->route('admin.komoditas.index')->with('success', 'Komoditas berhasil ditambahkan');
-    }
-
-    public function edit(Komoditas $komoditas)
-    {
-        return view('admin.komoditas.form', compact('komoditas'));
     }
 
     public function update(Request $request, Komoditas $komoditas)
@@ -67,8 +57,12 @@ class KomoditasController extends Controller
 
     public function destroy(Komoditas $komoditas)
     {
-        if ($komoditas->laporanHarga()->exists()) {
-            return redirect()->back()->with('error', 'Komoditas tidak dapat dihapus karena memiliki laporan');
+        if (
+            $komoditas->laporanHarga()->exists()
+            || $komoditas->supplierHarga()->exists()
+            || $komoditas->penyetoran()->exists()
+        ) {
+            return redirect()->back()->with('error', 'Komoditas tidak dapat dihapus karena masih digunakan oleh laporan, harga supplier, atau penyetoran.');
         }
         $komoditas->delete();
         return redirect()->route('admin.komoditas.index')->with('success', 'Komoditas berhasil dihapus');

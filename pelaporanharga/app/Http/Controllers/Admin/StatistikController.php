@@ -14,7 +14,7 @@ class StatistikController extends Controller
 {
     public function index(Request $request)
     {
-        $periode = $request->get('periode', 30); // hari
+        $periode = min(90, max(7, (int) $request->get('periode', 30)));
         $wilayahId = $request->get('wilayah_id');
         $komoditasId = $request->get('komoditas_id');
 
@@ -38,7 +38,9 @@ class StatistikController extends Controller
             ->where('tanggal_laporan', '>=', $tanggalDari);
         if ($wilayahId) $hargaQuery->where('wilayah_id', $wilayahId);
         if ($komoditasId) $hargaQuery->where('komoditas_id', $komoditasId);
-        $stats['harga_rata_periode'] = $hargaQuery->avg('harga') ?? 0;
+        $satuanAktif = (clone $hargaQuery)->distinct()->pluck('satuan')->filter()->values();
+        $stats['harga_rata_periode'] = (clone $hargaQuery)->avg('harga') ?? 0;
+        $stats['satuan_periode'] = $satuanAktif->count() === 1 ? $satuanAktif->first() : ($satuanAktif->isEmpty() ? 'kg' : 'campuran satuan');
 
         // Statistik per wilayah
         $perWilayah = LaporanHarga::select([
@@ -94,18 +96,24 @@ class StatistikController extends Controller
         if ($wilayahId) $perKategori->where('laporan_harga.wilayah_id', $wilayahId);
         $perKategori = $perKategori->groupBy('komoditas.kategori')->orderByDesc('jumlah')->get();
 
-        // Top petani pelapor
-        $topPetani = LaporanHarga::select('user_id')
+        // Top petani pelapor (batched user lookup tanpa N+1)
+        $topPetaniRaw = LaporanHarga::select('user_id')
             ->selectRaw('COUNT(*) as total_laporan')
             ->where('tanggal_laporan', '>=', $tanggalDari)
             ->groupBy('user_id')
             ->orderByDesc('total_laporan')
             ->limit(10)
-            ->get()
-            ->map(function ($item) {
-                $user = User::find($item->user_id);
-                return (object)['name' => $user?->name ?? '-', 'email' => $user?->email ?? '-', 'total_laporan' => $item->total_laporan];
-            });
+            ->get();
+
+        $topUsers = User::whereIn('id', $topPetaniRaw->pluck('user_id'))->get()->keyBy('id');
+        $topPetani = $topPetaniRaw->map(function ($item) use ($topUsers) {
+            $user = $topUsers->get($item->user_id);
+            return (object) [
+                'name' => $user?->name ?? '-',
+                'email' => $user?->email ?? '-',
+                'total_laporan' => $item->total_laporan,
+            ];
+        });
 
         $wilayah = Wilayah::active()->orderBy('kabupaten')->orderBy('kecamatan')->get();
         $komoditas = Komoditas::active()->orderBy('kategori')->orderBy('name')->get();
@@ -119,7 +127,28 @@ class StatistikController extends Controller
     public function apiLive(Request $request)
     {
         $periode = min(90, max(7, (int) $request->get('periode', 30)));
+        $wilayahId = $request->get('wilayah_id');
+        $komoditasId = $request->get('komoditas_id');
         $tanggalDari = now()->subDays($periode)->startOfDay();
+
+        $approvedBase = LaporanHarga::where('status', 'approved')
+            ->where('tanggal_laporan', '>=', $tanggalDari);
+        if ($wilayahId) {
+            $approvedBase->where('wilayah_id', $wilayahId);
+        }
+        if ($komoditasId) {
+            $approvedBase->where('komoditas_id', $komoditasId);
+        }
+
+        $laporanPeriodeQuery = LaporanHarga::where('tanggal_laporan', '>=', $tanggalDari);
+        if ($wilayahId) {
+            $laporanPeriodeQuery->where('wilayah_id', $wilayahId);
+        }
+        if ($komoditasId) {
+            $laporanPeriodeQuery->where('komoditas_id', $komoditasId);
+        }
+
+        $satuanAktif = (clone $approvedBase)->distinct()->pluck('satuan')->filter()->values();
 
         $stats = [
             'total_petani' => User::where('role', 'petani')->count(),
@@ -127,17 +156,17 @@ class StatistikController extends Controller
             'laporan_pending' => LaporanHarga::where('status', 'pending')->count(),
             'laporan_approved' => LaporanHarga::where('status', 'approved')->count(),
             'laporan_rejected' => LaporanHarga::where('status', 'rejected')->count(),
-            'laporan_periode' => LaporanHarga::where('tanggal_laporan', '>=', $tanggalDari)->count(),
-            'harga_rata' => LaporanHarga::where('status', 'approved')->where('tanggal_laporan', '>=', $tanggalDari)->avg('harga'),
+            'laporan_periode' => $laporanPeriodeQuery->count(),
+            'harga_rata' => (clone $approvedBase)->avg('harga'),
+            'satuan_periode' => $satuanAktif->count() === 1 ? $satuanAktif->first() : ($satuanAktif->isEmpty() ? 'kg' : 'campuran satuan'),
         ];
 
-        $trenHarga = LaporanHarga::select([
+        $trenHarga = (clone $approvedBase)
+            ->select([
                 DB::raw('DATE(tanggal_laporan) as tanggal'),
                 DB::raw('AVG(harga) as harga_rata'),
                 DB::raw('COUNT(*) as jumlah'),
             ])
-            ->where('status', 'approved')
-            ->where('tanggal_laporan', '>=', $tanggalDari)
             ->groupBy(DB::raw('DATE(tanggal_laporan)'))
             ->orderBy('tanggal')
             ->get();

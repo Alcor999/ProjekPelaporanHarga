@@ -12,15 +12,15 @@
 
     <style>
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-color: #f3f6f4;
             min-height: 100vh;
             display: flex;
             align-items: center;
         }
         .login-card {
-            border: none;
-            border-radius: 15px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
         }
     </style>
 </head>
@@ -52,7 +52,7 @@
                             </div>
                         @endif
 
-                        <form method="POST" action="{{ url('/panel/login') }}" id="loginForm">
+                        <form method="POST" action="{{ route('admin.login.post') }}" id="loginForm">
                             @csrf
 
                             <div class="mb-3">
@@ -89,16 +89,6 @@
                                 btn.querySelector('.btn-loading').classList.remove('d-none');
                             });
                         </script>
-
-                        <hr class="my-4">
-
-                        <div class="text-center">
-                            <small class="text-muted">
-                                Demo credentials:<br>
-                                Email: admin@laporanharga.com<br>
-                                Password: password
-                            </small>
-                        </div>
                     </div>
                 </div>
             </div>

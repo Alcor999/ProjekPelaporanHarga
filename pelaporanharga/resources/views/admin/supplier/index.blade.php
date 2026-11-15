@@ -82,7 +82,7 @@
                             @endif
                         </td>
                         <td>
-                            @php $avg = $s->avgRating(); @endphp
+                            @php $avg = (float) ($s->ratings_avg_rating ?? 0); @endphp
                             @if($avg > 0)
                             <span class="text-warning"><i class="fas fa-star"></i></span> {{ number_format($avg, 1) }}
                             <small class="text-muted">({{ $s->ratings_count }})</small>
@@ -99,7 +99,16 @@
                         </td>
                         <td>
                             <a href="{{ route('admin.supplier.show', $s) }}" class="btn btn-sm btn-outline-primary" title="Detail"><i class="fas fa-eye"></i></a>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="editSupplier({{ json_encode($s) }})" title="Edit"><i class="fas fa-edit"></i></button>
+                            <button type="button"
+                                    class="btn btn-sm btn-outline-secondary btn-edit-supplier"
+                                    data-update-url="{{ route('admin.supplier.update', $s) }}"
+                                    data-name="{{ $s->name }}"
+                                    data-phone="{{ $s->phone ?? '' }}"
+                                    data-address="{{ $s->address ?? '' }}"
+                                    data-wilayah-id="{{ $s->wilayah_id ?? '' }}"
+                                    data-description="{{ $s->description ?? '' }}"
+                                    data-active="{{ $s->is_active ? '1' : '0' }}"
+                                    title="Edit"><i class="fas fa-edit"></i></button>
                             <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ $s->id }}" title="Hapus"><i class="fas fa-trash"></i></button>
                             <div class="modal fade" id="deleteModal{{ $s->id }}" tabindex="-1">
                                 <div class="modal-dialog modal-dialog-centered">
@@ -150,30 +159,51 @@
             debounceTimer = setTimeout(function() { form.submit(); }, 400);
         });
     }
+
+    const modalEl = document.getElementById('createModal');
+    const formEl = document.getElementById('supplierForm');
+    const storeUrl = @json(route('admin.supplier.store'));
+
+    function setModalState(title, actionUrl, method) {
+        document.getElementById('formTitle').textContent = title;
+        formEl.action = actionUrl;
+        formEl.querySelector('input[name="_method"]').value = method;
+        formEl.querySelector('input[name="_form_action"]').value = actionUrl;
+        formEl.querySelector('input[name="_form_method"]').value = method;
+        formEl.querySelector('input[name="_modal_title"]').value = title;
+    }
+
+    function openCreateSupplier() {
+        formEl.reset();
+        setModalState('Tambah Supplier', storeUrl, 'POST');
+        formEl.querySelector('[name="is_active"]').checked = true;
+    }
+
+    document.querySelectorAll('.btn-edit-supplier').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            setModalState('Edit Supplier', btn.dataset.updateUrl, 'PUT');
+            formEl.querySelector('[name="name"]').value = btn.dataset.name || '';
+            formEl.querySelector('[name="phone"]').value = btn.dataset.phone || '';
+            formEl.querySelector('[name="address"]').value = btn.dataset.address || '';
+            formEl.querySelector('[name="wilayah_id"]').value = btn.dataset.wilayahId || '';
+            formEl.querySelector('[name="description"]').value = btn.dataset.description || '';
+            formEl.querySelector('[name="is_active"]').checked = btn.dataset.active === '1';
+            bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        });
+    });
+
+    const addTrigger = document.querySelector('[data-bs-target="#createModal"]');
+    if (addTrigger) {
+        addTrigger.addEventListener('click', openCreateSupplier);
+    }
+
+    modalEl.addEventListener('hidden.bs.modal', function() {
+        openCreateSupplier();
+    });
+
+    @if($errors->any())
+    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    @endif
 })();
-function editSupplier(s) {
-    document.getElementById('formTitle').textContent = 'Edit Supplier';
-    document.getElementById('supplierForm').action = '{{ url("admin/supplier") }}/' + s.id;
-    document.getElementById('supplierForm').querySelector('input[name="_method"]').value = 'PUT';
-    document.querySelector('[name="name"]').value = s.name || '';
-    document.querySelector('[name="phone"]').value = s.phone || '';
-    document.querySelector('[name="address"]').value = s.address || '';
-    document.querySelector('[name="wilayah_id"]').value = s.wilayah_id || '';
-    document.querySelector('[name="description"]').value = s.description || '';
-    document.querySelector('[name="is_active"]').checked = s.is_active;
-    new bootstrap.Modal(document.getElementById('createModal')).show();
-}
-document.getElementById('createModal').addEventListener('hidden.bs.modal', function() {
-    document.getElementById('formTitle').textContent = 'Tambah Supplier';
-    document.getElementById('supplierForm').action = '{{ route("admin.supplier.store") }}';
-    document.getElementById('supplierForm').querySelector('input[name="_method"]').value = 'POST';
-    document.getElementById('supplierForm').reset();
-});
-document.querySelector('[data-bs-target="#createModal"]').addEventListener('click', function() {
-    document.getElementById('formTitle').textContent = 'Tambah Supplier';
-    document.getElementById('supplierForm').action = '{{ route("admin.supplier.store") }}';
-    document.getElementById('supplierForm').querySelector('input[name="_method"]').value = 'POST';
-    document.getElementById('supplierForm').reset();
-});
 </script>
 @endpush

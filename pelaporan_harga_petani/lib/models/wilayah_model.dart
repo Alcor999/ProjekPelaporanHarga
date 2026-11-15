@@ -27,7 +27,9 @@ class Wilayah {
   }
 
   String get fullAddress => '$desa, $kecamatan, $kabupaten, $provinsi';
-  String get displayName => '$desa - $kecamatan';
+  String get displayName => desa.isNotEmpty
+      ? '$desa - $kecamatan, $kabupaten'
+      : '$kecamatan, $kabupaten';
 
   Map<String, dynamic> toJson() => {
     'id': id,

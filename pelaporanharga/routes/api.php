@@ -11,13 +11,13 @@ use App\Http\Controllers\Api\SupplierRatingController;
 use App\Http\Controllers\PublicController;
 
 // Authentication routes (no auth required)
-Route::post('/login', [AuthController::class, 'login']);
-Route::post('/register', [AuthController::class, 'registerPetani']);
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
+Route::post('/register', [AuthController::class, 'registerPetani'])->middleware('throttle:register');
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
-    Route::get('/profile', [AuthController::class, 'profile']);
+    Route::get('/profile', [AuthController::class, 'profile'])->middleware('role:petani');
 });
 
 // Reference data routes (no auth required)
@@ -26,7 +26,7 @@ Route::get('/ref/komoditas', [ReferensiController::class, 'komoditas']);
 Route::get('/ref/kategori', [ReferensiController::class, 'kategori']);
 
 // Public API - Harga terkini (untuk Flutter & web)
-Route::get('/public/harga-terkini', [PublicController::class, 'apiHargaTerkini']);
+Route::get('/public/harga-terkini', [PublicController::class, 'apiHargaTerkini'])->name('api.public.harga-terkini');
 Route::get('/public/harga-tren', [PublicController::class, 'apiHargaTren']);
 
 // Supplier (public - no auth)

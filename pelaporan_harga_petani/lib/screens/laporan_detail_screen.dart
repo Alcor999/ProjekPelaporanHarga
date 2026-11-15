@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../core/constants/api_constants.dart';
@@ -12,9 +13,9 @@ class LaporanDetailScreen extends StatelessWidget {
   final LaporanHarga laporan;
 
   const LaporanDetailScreen({
-    Key? key,
+    super.key,
     required this.laporan,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -83,7 +84,8 @@ class LaporanDetailScreen extends StatelessWidget {
           children: [
             // Status Card
             Container(
-              color: _getStatusColor(laporan.status).withValues(alpha: 0.1),
+              width: double.infinity,
+              color: _getStatusBadgeBackground(laporan.status).withValues(alpha: 0.12),
               padding: const EdgeInsets.all(AppSpacing.lg),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -91,39 +93,42 @@ class LaporanDetailScreen extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'Status Laporan',
-                        style: AppTextStyles.labelLarge.copyWith(
-                          color: AppColors.grey600,
+                      Expanded(
+                        child: Text(
+                          'Status Laporan',
+                          style: AppTextStyles.labelLarge.copyWith(
+                            color: AppColors.grey600,
+                          ),
                         ),
                       ),
+                      const SizedBox(width: AppSpacing.sm),
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: AppSpacing.md,
                           vertical: AppSpacing.sm,
                         ),
                         decoration: BoxDecoration(
-                          color: _getStatusColor(laporan.status),
+                          color: _getStatusBadgeBackground(laporan.status),
                           borderRadius: BorderRadius.circular(AppBorderRadius.sm),
                         ),
                         child: Text(
                           laporan.statusLabel,
                           style: AppTextStyles.labelSmall.copyWith(
-                            color: AppColors.white,
+                            color: _getStatusBadgeForeground(laporan.status),
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
                     ],
                   ),
-                  SizedBox(height: AppSpacing.md),
+                  const SizedBox(height: AppSpacing.md),
                   Text(
                     laporan.formattedHarga,
                     style: AppTextStyles.headlineMedium.copyWith(
                       color: AppColors.primary,
                     ),
                   ),
-                  SizedBox(height: AppSpacing.sm),
+                  const SizedBox(height: AppSpacing.sm),
                   Text(
                     'Harga per ${laporan.satuan}',
                     style: AppTextStyles.bodySmall.copyWith(
@@ -144,16 +149,18 @@ class LaporanDetailScreen extends StatelessWidget {
                     'Informasi Laporan',
                     style: AppTextStyles.titleLarge,
                   ),
-                  SizedBox(height: AppSpacing.lg),
+                  const SizedBox(height: AppSpacing.lg),
 
                   // Komoditas
                   _buildDetailItem(
                     icon: Icons.grain,
                     label: 'Komoditas',
-                    value:
-                        '${laporan.komoditas?['name'] ?? '-'} - ${laporan.komoditas?['grade'] ?? '-'}',
+                    value: laporan.komoditas?['grade'] != null &&
+                            laporan.komoditas!['grade'].toString().isNotEmpty
+                        ? '${laporan.komoditas?['name'] ?? '-'} - ${laporan.komoditas?['grade']}'
+                        : '${laporan.komoditas?['name'] ?? '-'}',
                   ),
-                  SizedBox(height: AppSpacing.lg),
+                  const SizedBox(height: AppSpacing.lg),
 
                   // Wilayah
                   _buildDetailItem(
@@ -163,7 +170,7 @@ class LaporanDetailScreen extends StatelessWidget {
                     subtitle:
                         '${laporan.wilayah?['kecamatan'] ?? ''}, ${laporan.wilayah?['kabupaten'] ?? ''}',
                   ),
-                  SizedBox(height: AppSpacing.lg),
+                  const SizedBox(height: AppSpacing.lg),
 
                   // Tanggal Panen
                   _buildDetailItem(
@@ -171,7 +178,7 @@ class LaporanDetailScreen extends StatelessWidget {
                     label: 'Tanggal Panen',
                     value: laporan.formattedTanggalPanen,
                   ),
-                  SizedBox(height: AppSpacing.lg),
+                  const SizedBox(height: AppSpacing.lg),
 
                   // Tanggal Laporan
                   if (laporan.tanggalLaporan != null)
@@ -180,21 +187,24 @@ class LaporanDetailScreen extends StatelessWidget {
                         _buildDetailItem(
                           icon: Icons.event_available,
                           label: 'Tanggal Laporan',
-                          value:
-                              '${laporan.tanggalLaporan?.day}/${laporan.tanggalLaporan?.month}/${laporan.tanggalLaporan?.year}',
+                          value: DateFormat('dd MMMM yyyy', 'id_ID')
+                              .format(laporan.tanggalLaporan!),
                         ),
-                        SizedBox(height: AppSpacing.lg),
+                        const SizedBox(height: AppSpacing.lg),
                       ],
                     ),
 
                   // Alasan Ditolak
-                  if (laporan.status == 'rejected' && laporan.rejectionReason != null && laporan.rejectionReason!.isNotEmpty)
+                  if (laporan.status == 'rejected' &&
+                      laporan.rejectionReason != null &&
+                      laporan.rejectionReason!.isNotEmpty)
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text('Alasan Ditolak', style: AppTextStyles.labelLarge.copyWith(color: AppColors.error)),
-                        SizedBox(height: AppSpacing.sm),
+                        const SizedBox(height: AppSpacing.sm),
                         Container(
+                          width: double.infinity,
                           padding: const EdgeInsets.all(AppSpacing.md),
                           decoration: BoxDecoration(
                             color: AppColors.error.withValues(alpha: 0.1),
@@ -202,7 +212,7 @@ class LaporanDetailScreen extends StatelessWidget {
                           ),
                           child: Text(laporan.rejectionReason!, style: AppTextStyles.bodyMedium),
                         ),
-                        SizedBox(height: AppSpacing.lg),
+                        const SizedBox(height: AppSpacing.lg),
                       ],
                     ),
 
@@ -212,7 +222,7 @@ class LaporanDetailScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text('Foto Bukti', style: AppTextStyles.labelLarge),
-                        SizedBox(height: AppSpacing.sm),
+                        const SizedBox(height: AppSpacing.sm),
                         ClipRRect(
                           borderRadius: BorderRadius.circular(AppBorderRadius.md),
                           child: CachedNetworkImage(
@@ -223,7 +233,7 @@ class LaporanDetailScreen extends StatelessWidget {
                             errorWidget: (_, __, ___) => const Icon(Icons.broken_image, size: 48),
                           ),
                         ),
-                        SizedBox(height: AppSpacing.lg),
+                        const SizedBox(height: AppSpacing.lg),
                       ],
                     ),
 
@@ -236,8 +246,9 @@ class LaporanDetailScreen extends StatelessWidget {
                           'Catatan',
                           style: AppTextStyles.labelLarge,
                         ),
-                        SizedBox(height: AppSpacing.sm),
+                        const SizedBox(height: AppSpacing.sm),
                         Container(
+                          width: double.infinity,
                           padding: const EdgeInsets.all(AppSpacing.md),
                           decoration: BoxDecoration(
                             color: AppColors.grey100,
@@ -249,7 +260,7 @@ class LaporanDetailScreen extends StatelessWidget {
                             style: AppTextStyles.bodyMedium,
                           ),
                         ),
-                        SizedBox(height: AppSpacing.lg),
+                        const SizedBox(height: AppSpacing.lg),
                       ],
                     ),
                 ],
@@ -305,17 +316,21 @@ class LaporanDetailScreen extends StatelessWidget {
     );
   }
 
-  Color _getStatusColor(String status) {
+  Color _getStatusBadgeBackground(String status) {
     switch (status) {
       case 'approved':
         return AppColors.success;
       case 'rejected':
         return AppColors.error;
       case 'pending':
-        return AppColors.warning;
+        return AppColors.warningSurface;
       default:
-        return AppColors.grey500;
+        return AppColors.grey600;
     }
+  }
+
+  Color _getStatusBadgeForeground(String status) {
+    return status == 'pending' ? AppColors.warningInk : AppColors.white;
   }
 
   void _showDeleteConfirmation(BuildContext context) {

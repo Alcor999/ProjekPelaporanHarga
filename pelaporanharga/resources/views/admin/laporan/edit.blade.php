@@ -35,7 +35,7 @@
                 <div class="col-md-6">
                     <label class="form-label">Harga <span class="text-danger">*</span></label>
                     <input type="number" name="harga" class="form-control @error('harga') is-invalid @enderror"
-                           value="{{ old('harga', $laporan->harga) }}" min="0" step="0.01" required>
+                           value="{{ old('harga', $laporan->harga) }}" min="1" step="0.01" required>
                     @error('harga')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
                 <div class="col-md-6">
@@ -65,8 +65,9 @@
                     @error('catatan')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
                 <div class="col-12" id="rejectionReasonBox" style="{{ old('status', $laporan->status) != 'rejected' ? 'display:none' : '' }}">
-                    <label class="form-label">Alasan Reject</label>
-                    <textarea name="rejection_reason" class="form-control" rows="3" placeholder="Wajib diisi jika status Rejected">{{ old('rejection_reason', $laporan->rejection_reason) }}</textarea>
+                    <label class="form-label">Alasan Reject <span class="text-danger">*</span></label>
+                    <textarea name="rejection_reason" id="rejectionReasonInput" class="form-control @error('rejection_reason') is-invalid @enderror" rows="3" placeholder="Wajib diisi jika status Rejected" {{ old('status', $laporan->status) === 'rejected' ? 'required' : '' }}>{{ old('rejection_reason', $laporan->rejection_reason) }}</textarea>
+                    @error('rejection_reason')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
                 <div class="col-12">
                     <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Simpan</button>
@@ -80,7 +81,9 @@
 @push('scripts')
 <script>
 document.querySelector('select[name="status"]').addEventListener('change', function() {
-    document.getElementById('rejectionReasonBox').style.display = this.value === 'rejected' ? 'block' : 'none';
+    const isRejected = this.value === 'rejected';
+    document.getElementById('rejectionReasonBox').style.display = isRejected ? 'block' : 'none';
+    document.getElementById('rejectionReasonInput').required = isRejected;
 });
 </script>
 @endpush

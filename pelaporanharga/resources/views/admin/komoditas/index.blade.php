@@ -58,7 +58,15 @@
                             @endif
                         </td>
                         <td>
-                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="editKomoditas({{ json_encode($k) }})" title="Edit">
+                            <button type="button"
+                                    class="btn btn-sm btn-outline-primary btn-edit-komoditas"
+                                    data-update-url="{{ route('admin.komoditas.update', $k) }}"
+                                    data-kategori="{{ $k->kategori ?? 'padi' }}"
+                                    data-name="{{ $k->name }}"
+                                    data-grade="{{ $k->grade ?? '' }}"
+                                    data-description="{{ $k->description ?? '' }}"
+                                    data-active="{{ $k->is_active ? '1' : '0' }}"
+                                    title="Edit">
                                 <i class="fas fa-edit"></i>
                             </button>
                             <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteKomoditasModal{{ $k->id }}" title="Hapus">
@@ -113,29 +121,51 @@
             debounceTimer = setTimeout(function() { form.submit(); }, 400);
         });
     }
+
+    const modalEl = document.getElementById('createModal');
+    const formEl = document.getElementById('komoditasForm');
+    const storeUrl = @json(route('admin.komoditas.store'));
+
+    function setModalState(title, actionUrl, method) {
+        document.getElementById('formTitle').textContent = title;
+        formEl.action = actionUrl;
+        formEl.querySelector('input[name="_method"]').value = method;
+        formEl.querySelector('input[name="_form_action"]').value = actionUrl;
+        formEl.querySelector('input[name="_form_method"]').value = method;
+        formEl.querySelector('input[name="_modal_title"]').value = title;
+    }
+
+    function openCreateKomoditas() {
+        formEl.reset();
+        setModalState('Tambah Komoditas', storeUrl, 'POST');
+        formEl.querySelector('[name="kategori"]').value = 'padi';
+        formEl.querySelector('[name="is_active"]').checked = true;
+    }
+
+    document.querySelectorAll('.btn-edit-komoditas').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            setModalState('Edit Komoditas', btn.dataset.updateUrl, 'PUT');
+            formEl.querySelector('[name="kategori"]').value = btn.dataset.kategori || 'padi';
+            formEl.querySelector('[name="name"]').value = btn.dataset.name || '';
+            formEl.querySelector('[name="grade"]').value = btn.dataset.grade || '';
+            formEl.querySelector('[name="description"]').value = btn.dataset.description || '';
+            formEl.querySelector('[name="is_active"]').checked = btn.dataset.active === '1';
+            bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        });
+    });
+
+    const addTrigger = document.querySelector('[data-bs-target="#createModal"]');
+    if (addTrigger) {
+        addTrigger.addEventListener('click', openCreateKomoditas);
+    }
+
+    modalEl.addEventListener('hidden.bs.modal', function() {
+        openCreateKomoditas();
+    });
+
+    @if($errors->any())
+    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    @endif
 })();
-function editKomoditas(k) {
-    document.getElementById('formTitle').textContent = 'Edit Komoditas';
-    document.getElementById('komoditasForm').action = '/admin/komoditas/' + k.id;
-    document.getElementById('komoditasForm').querySelector('input[name="_method"]').value = 'PUT';
-    document.querySelector('[name="kategori"]').value = k.kategori || 'padi';
-    document.querySelector('[name="name"]').value = k.name || '';
-    document.querySelector('[name="grade"]').value = k.grade || '';
-    document.querySelector('[name="description"]').value = k.description || '';
-    document.querySelector('[name="is_active"]').checked = k.is_active;
-    new bootstrap.Modal(document.getElementById('createModal')).show();
-}
-document.getElementById('createModal').addEventListener('hidden.bs.modal', function() {
-    document.getElementById('formTitle').textContent = 'Tambah Komoditas';
-    document.getElementById('komoditasForm').action = '{{ route("admin.komoditas.store") }}';
-    document.getElementById('komoditasForm').querySelector('input[name="_method"]').value = 'POST';
-    document.getElementById('komoditasForm').reset();
-});
-document.querySelector('[data-bs-target="#createModal"]').addEventListener('click', function() {
-    document.getElementById('formTitle').textContent = 'Tambah Komoditas';
-    document.getElementById('komoditasForm').action = '{{ route("admin.komoditas.store") }}';
-    document.getElementById('komoditasForm').querySelector('input[name="_method"]').value = 'POST';
-    document.getElementById('komoditasForm').reset();
-});
 </script>
 @endpush

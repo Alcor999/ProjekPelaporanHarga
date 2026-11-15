@@ -178,6 +178,20 @@
                                                         <p class="mb-0">{{ $item->catatan }}</p>
                                                     </div>
                                                     @endif
+                                                    @if($item->rejection_reason)
+                                                    <div class="col-12">
+                                                        <div class="alert alert-warning mb-0">
+                                                            <strong><i class="fas fa-exclamation-triangle me-1"></i>Alasan Penolakan:</strong>
+                                                            <div>{{ $item->rejection_reason }}</div>
+                                                        </div>
+                                                    </div>
+                                                    @endif
+                                                    @if($item->foto_path)
+                                                    <div class="col-12">
+                                                        <label class="text-muted small d-block mb-1">Foto Bukti</label>
+                                                        <img src="{{ asset('storage/' . $item->foto_path) }}" alt="Foto Bukti Laporan #{{ $item->id }}" class="img-fluid rounded border" style="max-height: 220px;">
+                                                    </div>
+                                                    @endif
                                                 </div>
                                             </div>
                                             <div class="modal-footer">

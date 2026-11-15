@@ -14,24 +14,42 @@ class AdminUserSeeder extends Seeder
      */
     public function run(): void
     {
-        User::create([
-            'name' => 'Administrator',
-            'email' => 'admin@laporanharga.com',
-            'password' => Hash::make('password'),
-            'role' => 'admin',
-            'status' => 'active',
-            'phone' => '081234567890',
-            'address' => 'Jl. Admin No. 1, Jakarta',
-        ]);
+        $adminEmail = 'admin@laporanharga.com';
 
-        User::create([
-            'name' => 'Petani Demo',
-            'email' => 'petani@laporanharga.com',
-            'password' => Hash::make('password'),
-            'role' => 'petani',
-            'status' => 'active',
-            'phone' => '081234567891',
-            'address' => 'Jl. Petani No. 1, Bogor',
-        ]);
+        if (! User::where('email', $adminEmail)->exists()) {
+            $password = env('ADMIN_INITIAL_PASSWORD');
+
+            if (empty($password)) {
+                if (! app()->environment(['local', 'testing'])) {
+                    throw new \RuntimeException('ADMIN_INITIAL_PASSWORD wajib diatur saat seeding di environment production.');
+                }
+
+                $password = 'password';
+            }
+
+            User::create([
+                'name' => 'Administrator',
+                'email' => $adminEmail,
+                'password' => Hash::make($password),
+                'role' => 'admin',
+                'status' => 'active',
+                'phone' => '081234567890',
+                'address' => 'Jl. Admin No. 1, Jakarta',
+            ]);
+        }
+
+        if (app()->environment(['local', 'testing'])) {
+            User::firstOrCreate(
+                ['email' => 'petani@laporanharga.com'],
+                [
+                    'name' => 'Petani Demo',
+                    'password' => Hash::make('password'),
+                    'role' => 'petani',
+                    'status' => 'active',
+                    'phone' => '081234567891',
+                    'address' => 'Jl. Petani No. 1, Bogor',
+                ]
+            );
+        }
     }
 }
